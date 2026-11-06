@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView android:background="?android:colorBackground" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:orientation="vertical" android:padding="18.0dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <TextView android:textSize="20.0sp" android:textStyle="bold" android:textColor="?q_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6.0dp" android:text="小组件设置" />
+        <TextView android:textSize="13.0sp" android:textColor="?q_text_sub" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4.0dp" android:text="调整桌面小组件的外观与按钮，改动立即生效" />
+        <TextView android:text="小组件预览" style="@style/SectionHeader" />
+        <FrameLayout android:id="@id/wsPreviewBox" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:text="卡片背景" style="@style/SectionHeader" />
+        <com.google.android.material.card.MaterialCardView style="@style/QinLCardSection">
+            <LinearLayout style="@style/QinLCardBody">
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <TextView android:textSize="15.0sp" android:textColor="?q_text" android:layout_width="0.0dp" android:layout_height="wrap_content" android:text="背景图片" android:layout_weight="1.0" />
+                    <TextView android:textSize="13.0sp" android:textColor="?q_text_sub" android:id="@id/wsBgState" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="未设置" />
+                </LinearLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10.0dp">
+                    <TextView android:textSize="15.0sp" android:textStyle="bold" android:textColor="?q_accent_on" android:gravity="center" android:id="@id/wsBgPick" android:layout_width="0.0dp" android:layout_height="44.0dp" android:text="选择图片" android:layout_weight="1.0" />
+                    <TextView android:textSize="15.0sp" android:textColor="?q_text_sub" android:gravity="center" android:id="@id/wsBgClear" android:layout_width="wrap_content" android:layout_height="44.0dp" android:text="恢复默认" android:paddingStart="16.0dp" android:paddingEnd="16.0dp" android:layout_marginStart="10.0dp" />
+                </LinearLayout>
+                <TextView android:textSize="12.0sp" android:textColor="?q_text_muted" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10.0dp" android:text="从相册选一张图片当卡片背景 —— 会按卡片尺寸缩小后存进 App 内，不需要额外权限、也不会外传。下方滑条直接调这张图的不透明度（不压画布），字看不清就往下调一点。" />
+                <TextView android:textSize="15.0sp" android:textColor="?q_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16.0dp" android:text="内置背景（点一下直接用）" />
+                <HorizontalScrollView android:scrollbars="none" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dp">
+                    <LinearLayout android:orientation="horizontal" android:id="@id/wsBgBuiltinBox" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </HorizontalScrollView>
+                <TextView android:textSize="12.0sp" android:textColor="?q_text_muted" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14.0dp" android:text="自定义图片要求：\n· 尺寸：建议宽度 1080px 以上、长宽比 2:1 左右（横图）；小于 448px 会偏糊\n· 大小：单张不超过 8MB\n· 格式：JPG / PNG 均可（PNG 边缘更好）\n· 圆角：不需要自己处理，选好后 App 会自动缩到卡片尺寸并裁 20dp 圆角" android:lineSpacingExtra="3.0dp" />
+                <View android:background="?q_stroke" android:layout_width="match_parent" android:layout_height="1.0dp" android:layout_marginTop="16.0dp" android:layout_marginBottom="16.0dp" />
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <TextView android:textSize="15.0sp" android:textColor="?q_text" android:id="@id/wsAlphaLab" android:layout_width="0.0dp" android:layout_height="wrap_content" android:text="不透明度（0 = 全透明）" android:layout_weight="1.0" />
+                    <TextView android:textSize="15.0sp" android:textStyle="bold" android:textColor="?q_accent" android:id="@id/wsAlphaVal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="100%" />
+                </LinearLayout>
+                <SeekBar android:id="@id/wsAlpha" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dp" android:max="100" android:progress="100" android:progressTint="?q_accent" android:thumbTint="?q_accent" />
+                <TextView android:textSize="12.0sp" android:textColor="?q_text_muted" android:id="@id/wsAlphaTip" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dp" android:text="没有自定义背景图时：0 = 卡片底完全透明（会看到桌面壁纸），100 = 完全不透明。" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView style="@style/QinLCardSection">
+            <LinearLayout android:orientation="vertical" style="@style/QinLCardBody">
+                <TextView android:textSize="15.0sp" android:textStyle="bold" android:textColor="?q_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="卡片主题" />
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dp">
+                    <com.google.android.material.button.MaterialButton android:textSize="13.0sp" android:id="@id/wsThemeAuto" android:layout_width="0.0dp" android:layout_height="wrap_content" android:text="跟随系统" android:layout_weight="1.0" android:layout_marginEnd="6.0dp" style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    <com.google.android.material.button.MaterialButton android:textSize="13.0sp" android:id="@id/wsThemeLight" android:layout_width="0.0dp" android:layout_height="wrap_content" android:text="白色" android:layout_weight="1.0" android:layout_marginEnd="6.0dp" style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    <com.google.android.material.button.MaterialButton android:textSize="13.0sp" android:id="@id/wsThemeDark" android:layout_width="0.0dp" android:layout_height="wrap_content" android:text="黑色" android:layout_weight="1.0" style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                </LinearLayout>
+                <TextView android:textSize="12.0sp" android:textColor="?q_text_muted" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dp" android:text="白色 = 白底深字；黑色 = 黑底白字。背景与文字一起切换，任何背景下车况文字都看得清。" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView style="@style/QinLCardSection">
+            <LinearLayout android:orientation="vertical" style="@style/QinLCardBody">
+                <TextView android:textSize="15.0sp" android:textStyle="bold" android:textColor="?q_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="卡片版式" />
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dp">
+                    <com.google.android.material.button.MaterialButton android:textSize="13.0sp" android:id="@id/wsModeSimple" android:layout_width="0.0dp" android:layout_height="wrap_content" android:text="简约版" android:layout_weight="1.0" android:layout_marginEnd="6.0dp" style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    <com.google.android.material.button.MaterialButton android:textSize="13.0sp" android:id="@id/wsModeDetail" android:layout_width="0.0dp" android:layout_height="wrap_content" android:text="详情版" android:layout_weight="1.0" style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                </LinearLayout>
+                <TextView android:textSize="12.0sp" android:textColor="?q_text_muted" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dp" android:text="简约版：去掉左边 5 个状态和右边胎压，中间四个车况放大横排。\n详情版：左边状态 + 中间四格 + 右边胎压（原来的样子）。\n上面配好的数据格、车控按钮、背景、主题两版通用，切换不会丢。" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <TextView android:text="车控功能" style="@style/SectionHeader" />
+        <com.google.android.material.card.MaterialCardView style="@style/QinLCardSection">
+            <LinearLayout android:orientation="vertical" android:id="@id/wsSlotBox" android:paddingLeft="16.0dp" android:paddingTop="4.0dp" android:paddingRight="14.0dp" android:paddingBottom="4.0dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        </com.google.android.material.card.MaterialCardView>
+        <TextView android:textSize="12.0sp" android:textColor="?q_text_muted" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10.0dp" android:text="点击「车控功能 1-4」为小组件下排的四个按键分别选择功能，改动立即生效。带「（智能）」的项会随车况自动切换图标与命令。" android:layout_marginStart="4.0dp" />
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:id="@id/m3_root" android:background="#0e1014" android:fitsSystemWindows="true" android:layout_width="match_parent" android:layout_height="match_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textSize="16.0sp" android:textStyle="bold" android:textColor="#e8eaed" android:id="@id/m3_title" android:paddingLeft="14.0dp" android:paddingTop="12.0dp" android:paddingRight="14.0dp" android:paddingBottom="4.0dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="0x3D 实时监视" />
+    <TextView android:textSize="12.0sp" android:textColor="#8ab4f8" android:id="@id/m3_state" android:paddingLeft="14.0dp" android:paddingRight="14.0dp" android:paddingBottom="8.0dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="加载中…" android:lineSpacingExtra="2.0dp" />
+    <ScrollView android:id="@id/m3_scroll" android:background="#12151a" android:paddingLeft="8.0dp" android:paddingTop="6.0dp" android:paddingRight="8.0dp" android:paddingBottom="6.0dp" android:layout_width="match_parent" android:layout_height="0.0dp" android:layout_weight="1.0">
+        <TextView android:textSize="10.0sp" android:textColor="#c8cdd4" android:id="@id/m3_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:lineSpacingExtra="1.0dp" android:textIsSelectable="true" android:fontFamily="monospace" />
+    </ScrollView>
+    <LinearLayout android:orientation="horizontal" android:padding="8.0dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <Button android:textSize="13.0sp" android:textColor="#ffffff" android:id="@id/m3_query" android:background="#1f3a5f" android:layout_width="0.0dp" android:layout_height="44.0dp" android:layout_marginRight="6.0dp" android:text="查一次" android:layout_weight="1.0" android:textAllCaps="false" />
+        <Button android:textSize="13.0sp" android:textColor="#e8eaed" android:id="@id/m3_clear" android:background="#2a2e35" android:layout_width="0.0dp" android:layout_height="44.0dp" android:layout_marginRight="6.0dp" android:text="清空" android:layout_weight="1.0" android:textAllCaps="false" />
+        <Button android:textSize="13.0sp" android:textColor="#e8eaed" android:id="@id/m3_copy" android:background="#2a2e35" android:layout_width="0.0dp" android:layout_height="44.0dp" android:layout_marginRight="6.0dp" android:text="复制" android:layout_weight="1.0" android:textAllCaps="false" />
+        <Button android:textSize="13.0sp" android:textColor="#ffdad6" android:id="@id/m3_close" android:background="#3a2020" android:layout_width="0.0dp" android:layout_height="44.0dp" android:text="关闭" android:layout_weight="1.0" android:textAllCaps="false" />
+    </LinearLayout>
+</LinearLayout>

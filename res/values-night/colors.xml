@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="w_bg">#e6141c2a</color>
+    <color name="w_btn_bg">#14ffffff</color>
+    <color name="w_btn_bg_busy">#0affffff</color>
+    <color name="w_btn_txt">#dce6f2</color>
+    <color name="w_btn_txt_busy">#66dce6f2</color>
+    <color name="w_ico_ac">#35d6c5</color>
+    <color name="w_ico_find">#4dd0ff</color>
+    <color name="w_ico_flash">#ffc845</color>
+    <color name="w_ico_lock">#4c9dff</color>
+    <color name="w_ico_near">#a99bff</color>
+    <color name="w_ico_off">#a78bfa</color>
+    <color name="w_ico_settings">#7e90a8</color>
+    <color name="w_ico_start">#ff9a4d</color>
+    <color name="w_ico_temp">#ff8f73</color>
+    <color name="w_ico_trunk">#e3a857</color>
+    <color name="w_ico_unlock">#3fd07f</color>
+    <color name="w_ico_windows">#93a9c4</color>
+    <color name="w_label">#8da0b8</color>
+    <color name="w_refresh">#7e90a8</color>
+    <color name="w_stroke">#1fffffff</color>
+    <color name="w_val">#f2f6fb</color>
+</resources>
