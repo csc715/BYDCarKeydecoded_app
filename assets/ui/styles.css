@@ -1,0 +1,2333 @@
+/* ══════════════════════════════════════════════════════════════
+   BYD 控车 · 车载 HMI 界面样式（3.14.17）
+   设计语言：深色高对比 + 大触控区 + 防误触间距 + 驾驶可读性
+   所有原有功能逻辑、交互行为、数据流程完全不变
+   ══════════════════════════════════════════════════════════════ */
+
+:root{
+  /* ── HMI 深色主题（默认）── */
+  --bg:#080C14; --bg2:#0D1320; --bg3:#121A2B;
+  --card:rgba(18,28,47,.85); --card2:rgba(24,36,58,.6); --line:rgba(255,255,255,.07);
+  --txt:#EEF0F4; --muted:#8E9BB5; --sub:#5A6B84;
+  /* HMI 功能色：高饱和度，驾驶场景一眼可辨 */
+  --accent:#3B9EFF; --accent-d:#2070D4;
+  --ok:#00E676; --ok-bg:rgba(0,230,118,.12); --ok-line:rgba(0,230,118,.28);
+  --warn:#FFB74D; --warn-bg:rgba(255,183,77,.10); --warn-line:rgba(255,183,77,.25);
+  --danger:#FF6B6B; --danger-bg:rgba(255,107,107,.12); --danger-line:rgba(255,107,107,.28);
+  /* 操作按钮色板 */
+  --btn-unlock:#00C853; --btn-unlock-dark:#009624;
+  --btn-lock:#1565C0;  --btn-lock-dark:#0D47A1;
+  --btn-power:#EF6C00;--btn-power-dark:#E65100;
+  --btn-off:#7B1FA2;  --btn-off-dark:#6A1B9A;
+  --btn-trunk:#F57C00;--btn-flash:#FFA000;--btn-find:#29B6F6;--btn-windows:#78909C;
+  --radius:20px; --radius-s:16px; --radius-xs:12px;
+  --shadow:0 8px 32px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3);
+  --glass:blur(12px);
+}
+html[data-theme="light"]{
+  --bg:#F0F3F8; --bg2:#E4E9F2; --bg3:#D8DFEA;
+  --card:#FFFFFF; --card2:#F4F7FC; --line:rgba(0,0,0,.08);
+  --txt:#1A1F2E; --muted:#5D6B82; --sub:#8E99AD;
+  --accent:#1976D2; --accent-d:#1560BD;
+  --ok:#00A055; --ok-bg:rgba(0,160,85,.08); --ok-line:rgba(0,160,85,.25);
+  --warn:#E65100; --warn-bg:rgba(230,81,0,.06); --warn-line:rgba(230,81,0,.2);
+  --danger:#D32F2F; --danger-bg:rgba(211,47,47,.08); --danger-line:rgba(211,47,47,.25);
+  --btn-unlock:#2E7D32; --btn-unlock-dark:#1B5E20;
+  --btn-lock:#1565C0;  --btn-lock-dark:#0D47A1;
+  --btn-power:#EF6C00;--btn-power-dark:#E65100;
+  --btn-off:#7B1FA2;  --btn-off-dark:#6A1B9A;
+  --shadow:0 6px 24px rgba(26,45,76,.12);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,"SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  font-size:15px;line-height:1.55;overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+  -webkit-font-smoothing:antialiased;
+}
+svg{width:22px;height:22px;fill:currentColor}
+b{font-weight:600}
+
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+/* ═══════════════════ 顶栏（精简，不抢焦点）═══════════════════ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 18px 10px;
+  background:linear-gradient(180deg,var(--bg2) 60%,transparent 100%);
+  border-bottom:1px solid var(--line);flex:none;
+}
+.tb-title{font-size:17px;font-weight:600;letter-spacing:.2px;color:var(--txt)}
+.tb-sub{font-size:11.5px;color:var(--sub);margin-top:2px}
+.tb-right{display:flex;gap:8px}
+.icon-btn{
+  width:40px;height:40px;border:1px solid var(--line);border-radius:12px;
+  background:var(--card);color:var(--muted);
+  display:flex;align-items:center;justify-content:center;padding:0;
+  transition:all .15s ease;
+}
+.icon-btn:active{transform:scale(.92);background:var(--card2);color:var(--accent)}
+.icon-btn.active{color:var(--accent);background:var(--card2)}   /* ★ 3.15.26：⚙️ 停在设置页时高亮 */
+.icon-btn svg{width:20px;height:20px}
+
+/* ═══════════════════ 内容区（流畅滚动）═════════════════════════ */
+.content{
+  flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 14px 20px;
+  -webkit-overflow-scrolling:touch;
+  scroll-behavior:smooth;
+}
+.page{display:none;animation:pageIn .25s ease-out}
+.page.active{display:block}
+@keyframes pageIn{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ═══════════════════ 卡片（毛玻璃效果）═══════════════════════════ */
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;margin-bottom:12px;
+  backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);
+  box-shadow:var(--shadow);
+  transition:border-color .2s;
+}
+.card:hover{border-color:rgba(255,255,255,.1)}
+/* ★★★ 3.15.51（用户 2026-10-11「音效卡片…默认折叠 保活卡片默认折叠」）：
+   可折叠卡片 —— 点标题行切换 .folded；折叠时只留标题 + 右侧箭头。
+   `.fold-head` = 标题把手，`.fold-body` = 要收起的内容。 */
+.card.foldable > .fold-head{
+  cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;
+  /* ★ 3.15.79（用户：「设置里面的卡片很难点开」）：标题行本来只有一行文字那么高、热区太小、
+     点了也没反馈。这里用「负 margin 抵消 padding」把可点区域撑大到整行（仍落在卡片内，
+     不改视觉排版），再补 tap 高亮 + 去掉移动端点击延迟。 */
+  padding:12px 12px;margin:-12px -12px 12px;border-radius:12px;
+  -webkit-tap-highlight-color:rgba(120,170,255,.20);touch-action:manipulation;
+  transition:background .12s ease;
+}
+.card.foldable > .fold-head:active{background:rgba(255,255,255,.07)}
+.card.foldable > .fold-head::after{content:"▾";opacity:.55;font-size:14px;transition:transform .18s ease}
+.card.foldable.folded > .fold-head::after{transform:rotate(-90deg)}
+.card.foldable.folded > .fold-body{display:none}
+/* ★ 3.15.80（用户：「标签页关闭的时候，它的高度只能是一行文字」）：折叠态去掉卡片内边距，
+   卡片高度 = 一行标题；标题行自带 padding 撑出可点区域与圆角。 */
+.card.foldable.folded{padding:0}
+.card.foldable.folded > .fold-head{margin:0;padding:16px;border-radius:var(--radius)}
+.sec-title{
+  font-size:13px;font-weight:600;color:var(--muted);
+  margin:18px 6px 10px;letter-spacing:.5px;
+  text-transform:uppercase;font-size:11.5px;
+}
+.sec-inline{
+  font-size:14px;font-weight:600;color:var(--muted);
+  margin-bottom:12px;display:flex;align-items:center;justify-content:space-between
+}
+
+/* ═══════════════════ Hero 车辆状态卡（HMI 核心视觉）═════════════ */
+.hero{
+  position:relative;overflow:hidden;padding:0;border:none;border-radius:var(--radius);
+  /* ★ 3.14.21：卡片背景现在是**照片**（默认图或用户上传图），
+     所以卡片内部固定按「深色主题」渲染、不跟随全局主题 ——
+     否则浅色主题下深色文字压在照片上会糊成一团。 */
+  --txt:#F2F5FA; --muted:#9CAEC6; --sub:#8093AC; --line:rgba(255,255,255,.10);
+  --ok:#3FD07F; --ok-bg:rgba(63,208,127,.14); --ok-line:rgba(63,208,127,.30);
+  --warn:#FFB454; --warn-bg:rgba(255,180,84,.14); --warn-line:rgba(255,180,84,.30);
+}
+.hero-bg{
+  position:absolute;top:0;right:0;bottom:0;left:0;overflow:hidden;
+  background:linear-gradient(160deg,#101827,#080C14);   /* 图片尚未加载时的兜底底色 */
+}
+/* ★ 3.14.21：卡片背景图铺满整卡（默认图 / 用户上传图共用同一套样式） */
+.hero-bg-img{
+  position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;
+  object-fit:cover;object-position:center;display:block;
+}
+/* ★ 3.14.42（用户）：两张**内置**背景图加宽 30px、右边 30px 被裁掉 ——
+   img 盒子比容器宽 30px（左对齐，inset:0 的 right 被显式 width 覆盖），
+   .hero-bg 的 overflow:hidden 裁掉右侧溢出，object-fit:cover 下图随之轻微放大。
+   只作用于内置两张（.hero-bg-default），用户长按上传的图不受影响。 */
+.hero-bg-img.hero-bg-default{
+  width:calc(100% + 30px);max-width:none;
+}
+/* 可读性遮罩：左侧信息区压暗、右侧留亮露出车 —— 保证任何照片上文字都清晰 */
+.hero-bg::after{
+  content:'';position:absolute;top:0;right:0;bottom:0;left:0;
+  background:linear-gradient(100deg,rgba(6,10,18,.94) 0%,rgba(6,10,18,.76) 40%,rgba(6,10,18,.24) 100%);
+}
+.hero-body{position:relative;padding:18px 16px}
+/* ★ 3.14.21：右侧小图框已取消（图改成整卡背景），左侧信息独占一行。
+   ★ 3.14.59：加 position/z-index —— 车名与车牌**永远压在状态胶囊之上**。
+   胶囊行（.pill-row）是绝对定位 z-index:3；万一窄屏上仍有一点点交叠，
+   也必须是"胶囊避让车牌"，而不是反过来把车牌盖住（用户报的就是这个）。 */
+.hero-info{
+  display:flex;flex-direction:column;align-items:flex-start;
+  position:relative;z-index:4;
+  padding-right:6px;              /* 与右侧胶囊留一道缝，别贴脸 */
+}
+.hero-name{font-size:24px;font-weight:600;letter-spacing:.3px}
+/* ★★★ 3.14.180：长按车型名（3 秒）改名字的按住反馈。纯视觉，不参与任何判定。 */
+.hero-name.holding{opacity:.7;transform:scale(.96);transition:none}
+.hero-plate{
+  display:inline-block;margin-top:8px;padding:4px 12px;border-radius:10px;
+  font-size:12px;font-weight:600;letter-spacing:1.5px;
+  background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-line)
+}
+
+/* ── 长按换图（热区 = **整张 hero 卡片**，原先是右上角小图框）── */
+.hero.longpressing{
+  box-shadow:0 0 0 2px rgba(59,158,255,.55);
+  animation:longPulse .6s ease infinite alternate;
+}
+@keyframes longPulse{ from{transform:scale(1)} to{transform:scale(.985)} }
+/* 「长按换图」提示：3.14.41 已随提示文字一起删除（用户：这个字样没必要） */
+/* ★ 3.14.41 用户要求：三个状态胶囊（在线 / 已锁车 / 已熄火）做成一排，
+   浮在**整张卡片的右上角**（原先在车牌下方）。hero 卡片自带 position:relative，
+   绝对定位挂上去；pointer-events:none 不拦截长按换图的热区。
+   ★ 3.14.42（用户）：整体**缩小 20%**，并**与车辆型号一行水平对齐** ——
+   hero-body 顶 padding 18px + 24px 车名的行盒中线 ≈ 32px，
+   所以 top:32px + translateY(-50%) 让胶囊行中线正好压在车名行中线上。 */
+/* ★★★ 3.14.59（用户：「这个小字动态文字挡住我车牌号了，不行做成两排」）：
+   原来是 `flex-direction:row` + 不换行 —— 4 个胶囊（在线/已锁车/已熄火/空调）
+   一排总宽约 280px，**窄屏上排不下就向左无限溢出**，正好压到左侧的车名和车牌。
+   现在改成：
+     · `flex-wrap:wrap` + 右对齐 ⇒ 排不下自动**折成两排**（用户要的就是两排）；
+     · `max-width:62%` ⇒ 硬性保证左边界不越过卡片宽度的 62%，
+       左侧 38% 整条永远是车名 / 车牌的干净区域（窄到 360px 也不会压上）；
+     · 去掉 `translateY(-50%)` —— 那是「单排垂直居中于车名行」的补偿，
+       两排时继续用会把整块顶出卡片上沿。改成从卡片顶部往下排。
+   车名 / 车牌那一侧同时挂 z-index（见 .hero-info），双保险。 */
+.pill-row{
+  position:absolute;top:14px;right:14px;z-index:3;
+  display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;
+  gap:6px;max-width:62%;
+  pointer-events:none;
+}
+.pill{
+  display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:18px;
+  font-size:9.2px;font-weight:600;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);color:var(--txt);
+  white-space:nowrap;min-height:22px;
+}
+.pill i{width:6.4px;height:6.4px;border-radius:50%;background:var(--sub);display:block;transition:.2s}
+/* ★ 3.20.5：胶囊**整体**上色（不只是小圆点）—— 绿胶囊=正常/安全，红胶囊=需要注意。
+   只改圆点的话，3 米外看过去四个胶囊还是一模一样，驾驶员扫一眼分不出要不要管。 */
+.pill.on{background:var(--ok-bg);border-color:var(--ok-line)}
+.pill.on i{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.pill.warn i{background:var(--warn);box-shadow:0 0 10px var(--warn)}
+.pill.off i{background:var(--danger);box-shadow:0 0 10px var(--danger)}
+.pill.danger{background:var(--danger-bg);border-color:var(--danger-line)}
+.pill.danger i{background:var(--danger);box-shadow:0 0 10px var(--danger)}
+
+/* ═══════════ 浅色主题下的 Hero 背景（★ 3.14.22 用户要求）═══════════
+   「暗色下这张背景图很好看，白底布局下就冲突了」——
+   ⇒ **两张独立的背景图**（用户明确：不是给暗色图加滤镜，要两张图）：
+     · 暗色：car-default.jpg       深蓝黑棚拍 + 深色反光地面（已确认好看，原样不动）
+     · 浅色：car-default-light.jpg 同款车 / 同角度 / 同构图，明亮白色影棚 + 浅色反光地面
+   切主题时自动跟着换 —— 换图、白纱、文字色**全部走 CSS**（html[data-theme="light"]），
+   点设置页或预览页的主题按钮即整体生效，JS 一行都不用改。
+   本段必须放在最后 —— 才能盖掉上面的深色默认值。 */
+html[data-theme="light"] .hero{
+  --txt:#0F1724; --muted:#596A80; --sub:#7A8CA3; --line:rgba(16,32,56,.12);
+  --ok:#0E9C52; --ok-bg:rgba(14,156,82,.10); --ok-line:rgba(14,156,82,.24);
+  --warn:#B26A00; --warn-bg:rgba(178,106,0,.10); --warn-line:rgba(178,106,0,.24);
+}
+/* 图片没加载出来时的兜底底色，也从深蓝黑换成浅蓝白 */
+html[data-theme="light"] .hero-bg{background:linear-gradient(160deg,#EFF4FB,#E2EAF5)}
+/* ── 换图（★ 3.14.22）：两张**独立**的默认背景图，纯 CSS 按主题切换，JS 不参与 ── */
+.hero-bg-light{display:none}                            /* 默认（暗色）只显示暗色图 */
+html[data-theme="light"] .hero-bg-dark{display:none}    /* 浅色主题：收起暗色图… */
+html[data-theme="light"] .hero-bg-light{display:block}  /* …换上浅色图 */
+/* ★ 3.14.22 续：用户**每个主题各能存一张**自定义图 → 只让**那个主题**的内置图让位，
+   另一个主题照常显示自己的内置图（用户：需要准备两张，一张黑色一张白色）。
+   has-user-dark / has-user-light 由 JS 挂在 .hero-bg 上。
+   权重 (0,3,0) 高过上面两条 (0,2,1)，所以任何主题下都压得住。 */
+.hero-bg.has-user-dark  .hero-bg-dark.hero-bg-default{display:none}
+.hero-bg.has-user-light .hero-bg-light.hero-bg-default{display:none}
+/* 白纱：比「给暗色图加滤镜」那版轻了整整一档 ——
+   浅色图本身已经是明亮白棚，不再需要重纱去救可读性；
+   轻纱只做一件事：让左侧深色文字有一块干净的底，右侧把车完整露出来。 */
+html[data-theme="light"] .hero-bg::after{
+  background:
+    /* ① 左侧竖带：给车名 / 车牌 / 状态胶囊让出干净的底 */
+    linear-gradient(100deg,rgba(255,255,255,.94) 0%,rgba(255,255,255,.66) 24%,rgba(255,255,255,0) 46%),
+    /* ② 底部横带：四个指标数字是**横跨整宽**的，右侧那两三个正好压在车漆 / 格栅上 ——
+         靠这条横带把它们托起来；越往上越淡，车顶和引擎盖的线条仍然完整露出来。 */
+    linear-gradient(0deg,rgba(255,255,255,.88) 0%,rgba(255,255,255,.74) 34%,
+                   rgba(255,255,255,.34) 58%,rgba(255,255,255,0) 76%);
+}
+/* ★ 2026-09-27 用户定稿：**不要给文字加描边**（原话「不然有点虚」）——
+   加了 text-shadow 的字边缘会发毛，看着不干净。
+   ⇒ 可读性不靠给字描白边，而是靠上面那条 ② 底部横带**把字下面的底压干净**。
+   ⇒ 以后指标数字要是又看不清，**调 ② 那层横带的浓度**，不要回头加 text-shadow。 */
+/* 状态胶囊：从「浅玻璃」换成「白玻璃 + 细描边」，压在浅色照片上才立得住 */
+html[data-theme="light"] .pill{
+  background:rgba(255,255,255,.72);border-color:rgba(16,32,56,.12);
+  box-shadow:0 1px 3px rgba(16,32,56,.06);
+}
+/* ★ 3.14.41：胶囊挪到右上角后压在照片亮部（车顶/影棚白底），
+   浅色主题下白玻璃在白底上会化掉 → 描边和投影各加浓半档。 */
+html[data-theme="light"] .pill-row .pill{
+  background:rgba(255,255,255,.86);border-color:rgba(16,32,56,.20);
+  box-shadow:0 1px 4px rgba(16,32,56,.14);
+}
+
+/* ── 车况指标（大字号，一眼可读）── */
+.hero-metric{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px;
+  padding-top:18px;border-top:1px solid rgba(255,255,255,.08)
+}
+html[data-theme="light"] .hero-metric{border-top-color:rgba(0,0,0,.07)}
+.hm-item{text-align:center}
+.hm-val{font-size:22px;font-weight:600;line-height:1.2}
+.hm-val em{font-size:12px;font-style:normal;font-weight:500;color:var(--muted);margin-left:2px}
+.hm-key{font-size:11.5px;color:var(--sub);margin-top:4px}
+
+/* ═══════════════════ 控制按钮网格（HMI 大触控）═══════════════════ */
+.grid4{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px
+}
+/* ★ 3.15.114：车辆控制卡 5 列 × 2 行 = 10 钮（用户「5*2 对应的功能放到一起」） */
+.grid5{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px
+}
+/* 5 列下按钮略收窄：图标 33→29、文字 13→12，窄屏不挤爆 */
+.grid5 .ctl{padding:14px 3px 11px;gap:7px;min-height:80px;border-radius:15px}
+.grid5 .ctl-svg{width:29px;height:29px}
+.grid5 .ctl-t{font-size:12px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+
+/* ── 控制按钮（3.14.19 车机风格重做）──
+   用户反馈：扁平浅色卡「不符合车机控制按钮风格」。
+   车机控制键的要点 = **大尺寸 + 实体感（凸起光影）+ 清晰图标语义**：
+     · 键高 64 → 86px，图标 26 → 33px，文字 12 → 13px/600
+     · 内高光 + 外投影做出"可按"的实体层次，按下有内凹反馈
+     · 功能色只落在图标上（不铺满整块，避免与背景打架） */
+.ctl{
+  border:1px solid rgba(255,255,255,.10);border-radius:18px;
+  padding:17px 6px 14px;display:flex;flex-direction:column;align-items:center;gap:9px;
+  color:var(--txt);font-family:inherit;cursor:pointer;
+  transition:transform .1s cubic-bezier(.4,0,.2,1),box-shadow .1s;
+  min-height:86px;position:relative;overflow:hidden;
+  background:linear-gradient(168deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 2px 10px rgba(0,0,0,.22);
+}
+html[data-theme="light"] .ctl{
+  background:linear-gradient(168deg,#FFFFFF,#EFF3FA);
+  border-color:rgba(22,40,70,.10);
+  box-shadow:inset 0 1px 0 #FFFFFF, 0 2px 8px rgba(22,40,70,.10);
+}
+.ctl::before{
+  content:'';position:absolute;top:0;right:0;bottom:0;left:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.05) 0%,transparent 46%);
+  pointer-events:none;
+}
+html[data-theme="light"] .ctl::before{background:none}
+.ctl:active{
+  transform:scale(.955);
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.18), 0 1px 3px rgba(0,0,0,.14);
+}
+.ctl.busy{opacity:.45;pointer-events:none}
+.ctl-svg{
+  width:33px;height:33px;stroke:currentColor;fill:none;flex-shrink:0;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.16));
+}
+.ctl-t{font-size:13px;color:var(--txt);opacity:.90;white-space:nowrap;font-weight:600;letter-spacing:.2px}
+
+/* ── 控制按钮配色（3.14.19 重做）──
+   用户反馈：原来的高饱和**实心色块**「与背景背道而驰」，emoji 图标也难看。
+   新方案：所有按钮统一用卡片底色（与整体协调），
+   **功能色只体现在线性 SVG 图标上**，不再铺满整块 —— 保留语义辨识，又不刺眼。 */
+.ctl .ctl-svg{color:var(--muted)}
+.ctl[data-act="unlock"]     .ctl-svg{color:#3FD07F}
+.ctl[data-act="lock"]       .ctl-svg{color:#4C9DFF}
+.ctl[data-act="trunk_open"] .ctl-svg{color:#E3A857}
+.ctl[data-act="trunk_close"] .ctl-svg{color:#D0873A}
+.ctl[data-act="air_vent"]   .ctl-svg{color:#6FD3C4}
+.ctl[data-act="windows"]    .ctl-svg{color:#93A9C4}
+.ctl[data-act="flash"]      .ctl-svg{color:#FFC845}
+.ctl[data-act="find"]       .ctl-svg{color:#4DD0FF}
+.ctl[data-act="start"]      .ctl-svg{color:#FF9A4D}
+.ctl[data-act="off"]        .ctl-svg{color:#A78BFA}
+
+/* 浅色主题：同一套色相压深明度，保证浅底上也读得清 */
+html[data-theme="light"] .ctl[data-act="unlock"]     .ctl-svg{color:#178A4C}
+html[data-theme="light"] .ctl[data-act="lock"]       .ctl-svg{color:#1466C0}
+html[data-theme="light"] .ctl[data-act="trunk_open"] .ctl-svg{color:#A96E15}
+html[data-theme="light"] .ctl[data-act="trunk_close"] .ctl-svg{color:#8A5A12}
+html[data-theme="light"] .ctl[data-act="air_vent"]   .ctl-svg{color:#0E7F72}
+html[data-theme="light"] .ctl[data-act="windows"]    .ctl-svg{color:#4E6B85}
+html[data-theme="light"] .ctl[data-act="flash"]      .ctl-svg{color:#A87B00}
+html[data-theme="light"] .ctl[data-act="find"]       .ctl-svg{color:#0277BD}
+html[data-theme="light"] .ctl[data-act="start"]      .ctl-svg{color:#C25E00}
+html[data-theme="light"] .ctl[data-act="off"]        .ctl-svg{color:#6A46A8}
+
+/* ═══════════════════ 空调卡片 ════════════════════════════════════ */
+.ac-card{padding:18px 16px}
+.ac-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.ac-title{font-size:17px;font-weight:600}
+.ac-sub{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* 空调状态：并入 Hero 卡底部的**一行动态文字**（无独立卡片、无圆点图标） */
+/* ★★★ 3.15.51（用户 2026-10-11「首页第一个卡片。左对齐是空调数据。同一行右对齐，
+   加一个充电数据」）：hero 底部这行由"单段空调文字"改为**一行两栏** ——
+   左（#acLiveTxt）空调数据、右（#chgLive）充电数据，两端对齐撑满。 */
+.ac-live{
+  margin-top:16px;padding-top:14px;
+  border-top:1px solid rgba(255,255,255,.08);
+  font-size:12.5px;color:var(--muted);line-height:1.55;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+.ac-live #acLiveTxt{text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ac-live .ac-chg{text-align:right;white-space:nowrap}
+.ac-live .ac-chg.on{color:var(--ok)}
+html[data-theme="light"] .ac-live{border-top-color:rgba(0,0,0,.07)}
+.ac-live.on{color:var(--ok)}
+.ac-live em{font-style:normal;color:var(--sub);font-size:11.5px}
+.ac-live b{font-weight:600;color:inherit}
+
+/* 温度显示（超大字号） */
+.ac-temp{text-align:center;margin-bottom:18px}
+/* ★ 3.14.21 用户报「3 档风量 大小不匹配」，两轮调整：
+   ① 字号：数字 48→42px、标签 16→22px（3:1 → 1.9:1），不再断层；
+   ② **对齐**：align-items 由 baseline 改 center。
+      baseline 对齐时中文字形整体沉在数字底部（中文无降部，字形底只略高于基线），
+      视觉上「档风量」贴着「3」的下缘、重心明显偏低；改 center 后两者**行盒中线对齐**，
+      「档风量」垂直居中于数字，视觉重心才真正齐平。 */
+.ac-temp-val{font-size:42px;font-weight:700;line-height:1;letter-spacing:-1.2px;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.ac-temp-val em{font-size:22px;font-style:normal;font-weight:500;color:var(--muted);letter-spacing:0;line-height:1.2}
+.ac-temp-min{display:flex;justify-content:space-between;font-size:11.5px;color:var(--sub);margin-top:6px}
+.ac-row{margin-bottom:14px}
+.ac-label{font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:500}
+.ac-label b{color:var(--accent)}
+
+/* ═══════════════════ 滑轨组件（HMI 舒适版 · 低对比 · 大触控）═════════ */
+
+/* ★ 3.14.172（用户反馈：「预约时间和蓝牙阈值那个总是触碰到」）：
+   每条滑轨都套一个 .rglock 外壳 —— 手指先落外壳上，**长按 0.35 秒**才解锁拖动。
+   `.armed` 是解锁态：整条轨道亮蓝边，配合一次震动，明确告诉用户"现在可以拖了"。
+   ⚠ 外壳宽度 100% + block，保证不改变原有的布局（原来 input 就是 block 全宽）。 */
+.rglock{position:relative;width:100%;touch-action:pan-y}
+.rglock.armed .range,
+.rglock.armed .tl2-range{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(59,158,255,.20);
+}
+
+/* ── 通用滑轨基础（温度 / 风量 / 阈值 共用）── */
+.range{
+  -webkit-appearance:none;appearance:none;width:100%;
+  height:8px;border-radius:5px;
+  background:var(--card2);outline:none;margin:10px 0 6px;cursor:pointer;
+  border:1px solid var(--line);
+  transition:border-color .2s;
+}
+.range:focus{border-color:rgba(59,158,255,.25)}
+.range::-webkit-slider-thumb{
+  -webkit-appearance:none;width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(145deg,var(--accent),var(--accent-d));
+  border:3px solid var(--card);
+  box-shadow:0 2px 8px rgba(0,0,0,.25),0 0 0 4px rgba(59,158,255,.08);
+  cursor:pointer;transition:all .15s cubic-bezier(.4,0,.2,1);
+  /* ★★★ 3.15.11（用户 2026-10-09「他这个圆点…有点偏上了」）：原来是 `margin-top:-10px`
+     （注释写"28px vs 轨道8px：负偏移让原点垂直居中"）—— **这个负偏移是多余的**。
+     实测（_uitest/_sc313.py，Edge --force-device-scale-factor=3 逐像素量 thumb bbox 中心）：
+        margin-top  -10px  ⇒ 圆心比轨道中心**偏上 2.67px**、且 thumb 顶部被吃掉 5px（bbox 28×23）
+                    -6px   ⇒ 偏上 1.67px
+                    -2px   ⇒ 偏上 0.67px
+                    **0px  ⇒ 偏上 0.17px（= 居中）、bbox 完整 28×28**  ← 正解
+                    +2px   ⇒ 偏下 0.33px
+     ⇒ Chrome/Edge 对 `-webkit-slider-thumb` **本来就是垂直居中于轨道**的，再叠负偏移只会把
+       圆点顶上去。改成 0。 */
+  margin-top:0;
+}
+.range::-webkit-slider-thumb:hover{
+  box-shadow:0 3px 12px rgba(0,0,0,.3),0 0 0 6px rgba(59,158,255,.12);
+  transform:scale(1.06);
+}
+.range::-webkit-slider-thumb:active{
+  transform:scale(1.12);
+  box-shadow:0 1px 6px rgba(0,0,0,.2),0 0 0 8px rgba(59,158,255,.18);
+}
+
+/* 温度滑轨特殊样式（带刻度标记感） */
+#acTemp{--track-ok:var(--ok);--track-mid:var(--warn)}
+#acTemp::-webkit-slider-runnable-track{
+  height:8px;border-radius:5px;
+  background:linear-gradient(90deg,
+    #64B5F6 0%, var(--ok) 30%, var(--ok) 55%,
+    var(--warn) 75%, var(--danger) 100%);
+}
+
+/* 风量滑轨（蓝色系，与温度区分） */
+#acWind{--track-hue:210}
+#acWind::-webkit-slider-runnable-track{
+  height:8px;border-radius:5px;
+  background:linear-gradient(90deg,
+    rgba(59,158,255,.25) 0%,
+    var(--accent) 50%,
+    rgba(59,158,255,.45) 100%);
+}
+
+/* ★★★ 3.15.19（#227，用户 2026-10-10「空调的圆点偏下于滑轨了」）：**空调两条滑轨的垂直补偿**。
+ *
+ * ── 规则（本轮实测，推翻 3.15.11 的旧结论）──
+ *   Blink 里 thumb 是 **`thumb.top = track.top + margin-top`（顶对齐 track 顶）**，
+ *   **不是**"自动垂直居中"。所以"居中"的充要条件是
+ *       `margin-top = (trackH − thumbH) / 2`
+ *
+ * ── 为什么只有这两条要补 ──
+ *   · **其它滑轨**（设置页防抖、空调预约 .tl2-range…）**没有**自定义
+ *     `::-webkit-slider-runnable-track` ⇒ 走 Blink 默认 track，而默认高度**恰好等于
+ *     thumb 高度** ⇒ 顶对齐 track 顶 == 居中 ⇒ `margin-top:0` 正确（3.15.11 的改法对它们是对的）。
+ *   · **`#acTemp` / `#acWind`** 为了画 8px 的渐变色带，把 track 显式设成了 `height:8px`
+ *     ⇒ thumb(28px) 顶对齐 8px track 顶 ⇒ 圆点整条往下挂 **10px** ⇒ 就是用户看到的"偏下"。
+ *
+ * ── 3.15.11 的错 ──
+ *   3.15.11 的定标脚本（_uitest/_sc313.py）只量了**裸 `.range`**，量到 `margin-top:0` 居中，
+ *   就把 `.range::-webkit-slider-thumb` 的 `-10px` 统一改成 `0` —— 对裸 `.range` 是对的，
+ *   却把这两条**原本正确（-10px 正好居中）**的滑轨一起改坏了。
+ *
+ * ── 实测（_uitest/_sc316.py，Edge --force-device-scale-factor=3 逐像素量 thumb/track 中心）──
+ *     margin-top:0     ⇒ 圆点距轨道中心 **+10.00px**（偏下）
+ *     margin-top:-6px  ⇒ +4.00px
+ *     margin-top:-10px ⇒ **+0.00px（居中）**   ← 正解
+ *     margin-top:-12px ⇒ -2.00px（偏上）
+ *   算式：(8 − 28) / 2 = −10
+ *   ⚠ 以后再加"自定义 track 高度"的滑轨，必须同步给它的 thumb 配 (trackH−thumbH)/2，
+ *     否则会重现同一个 bug。 */
+#acTemp::-webkit-slider-thumb,
+#acWind::-webkit-slider-thumb{margin-top:-10px}
+
+/* 阈值滑轨（蓝牙页，更低调）—— ★ 3.15.11：这三条滑条（#rgEnter/#rgExit/#rgDeb）
+   已随 3.15.7 的「阈值判定退役」从 HTML 整块删除，这里保留样式只为不误伤历史，
+   但原来的 `margin-top:-9px` 同 .range 一样是多余负偏移，一并归零。 */
+#rgEnter,#rgExit,#rgDeb{
+  height:6px;border-radius:4px;margin:8px 0 4px;
+  background:linear-gradient(90deg,
+    rgba(142,155,181,.15) 0%,
+    rgba(59,158,255,.2) 50%,
+    rgba(142,155,181,.15) 100%);
+  border-color:rgba(255,255,255,.05);
+}
+#rgEnter::-webkit-slider-thumb,
+#rgExit::-webkit-slider-thumb,
+#rgDeb::-webkit-slider-thumb{
+  width:24px;height:24px;border-radius:50%;
+  background:linear-gradient(145deg,rgba(59,158,255,.7),rgba(59,158,255,.9));
+  border:2px solid var(--card);
+  box-shadow:0 1px 6px rgba(0,0,0,.2);
+  margin-top:0;
+}
+#rgEnter::-webkit-slider-thumb:active,
+#rgExit::-webkit-slider-thumb:active,
+#rgDeb::-webkit-slider-thumb:active{transform:scale(1.1)}
+
+/* ═══ 预约时间滑条（青色粗轨 · 与风量明显区分）════ */
+.tl2{margin-top:6px}
+.tl2-val{
+  display:inline-block;min-width:88px;text-align:center;
+  padding:6px 16px;border-radius:12px;margin-bottom:10px;
+  background:rgba(0,200,140,.08);border:1px solid rgba(0,200,140,.22);
+  color:#26A69A;font-size:16px;font-weight:700;letter-spacing:.5px;
+  font-variant-numeric:tabular-nums;transition:all .2s;
+}
+.tl2-val.now{background:var(--card2);border-color:var(--line);color:var(--muted);font-size:13px}
+html[data-theme="light"] .tl2-val{background:rgba(0,130,110,.07);border-color:rgba(0,130,110,.2);color:#00897B}
+html[data-theme="light"] .tl2-val.now{background:rgba(0,0,0,.04);color:var(--muted)}
+
+.tl2-range{
+  -webkit-appearance:none;appearance:none;width:100%;height:14px;border-radius:8px;
+  outline:none;margin:6px 0 0;border:1px solid rgba(0,200,140,.15);
+  background:linear-gradient(90deg,
+    #26A69A 0%,#26A69A var(--tl-pct,0%),
+    rgba(30,40,58,.5) var(--tl-pct,0%),rgba(30,40,58,.5) 100%);
+  cursor:pointer;box-shadow:inset 0 1px 3px rgba(0,0,0,.15);
+}
+.tl2-range:focus{border-color:rgba(0,200,140,.35)}
+.tl2-range::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:30px;border-radius:6px;
+  background:linear-gradient(180deg,#4DB6AC,#26A69A);
+  border:2px solid var(--card);
+  box-shadow:0 2px 10px rgba(0,0,0,.3),0 0 0 3px rgba(38,166,154,.1);
+  cursor:pointer;transition:all .12s cubic-bezier(.4,0,.2,1);
+  /* ★★★ 3.15.11：原 `margin-top:-8px` 同样是多余的（与 .range 同因）——
+     实测偏移 -3.42px（竖条竖高 30px、轨道 14px），改 0 后偏移 -0.42px ≈ 居中。
+     测量方法见 .range::-webkit-slider-thumb 上方的注释（_uitest/_sc313.py）。 */
+  margin-top:0;
+}
+.tl2-range::-webkit-slider-thumb:hover{
+  transform:scale(1.08);box-shadow:0 2px 14px rgba(0,0,0,.35),0 0 0 5px rgba(38,166,154,.15);
+}
+.tl2-range::-webkit-slider-thumb:active{
+  transform:scale(1.14);box-shadow:0 1px 8px rgba(0,0,0,.25),0 0 0 8px rgba(38,166,154,.2);
+}
+/* ★★★ 3.15.11（用户 2026-10-09「他这个圆点。和刻度线。不对中」）：
+   原来用 `display:flex; justify-content:space-between` —— 那是按**容器宽度**均布，
+   而 thumb 的圆心只在 [半径, 宽-半径] 之间跑（16px 宽 ⇒ 半径 8px）⇒ 两端天生差
+   「半个 thumb 宽度 + 半个字宽」。实测(320px 卡)：左端差 +1.8px、右端差 **+5.4px**。
+   改为**绝对定位**，把每个刻度的**中心**钉在 thumb 圆心的等分点上：
+       第 i 个点 = calc(8px + (100% - 16px) × i/(n-1))       （i = 0..n-1）
+   ⚠ 本规则按**5 段刻度**写死（当前唯一使用者 = 空调「预约时间」滑条，5 个档位）。
+     以后加刻度要同步补 nth-child。 */
+.tl2-scale{
+  position:relative;height:16px;
+  font-size:11px;color:var(--sub);
+  margin-top:8px;font-variant-numeric:tabular-nums;font-weight:500;
+}
+.tl2-scale>span{
+  position:absolute;top:0;white-space:nowrap;transform:translateX(-50%);
+}
+.tl2-scale>span:nth-child(1){left:8px}
+.tl2-scale>span:nth-child(2){left:calc(8px + (100% - 16px) * .25)}
+.tl2-scale>span:nth-child(3){left:calc(8px + (100% - 16px) * .5)}
+.tl2-scale>span:nth-child(4){left:calc(8px + (100% - 16px) * .75)}
+.tl2-scale>span:nth-child(5){left:calc(100% - 8px)}
+.ac-hint{font-size:12px;color:var(--sub);margin:-4px 0 14px;line-height:1.55}
+.ac-hint-inline{font-size:11.5px;color:var(--sub);font-weight:400;margin-left:4px}
+.ac-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+/* ★ 3.14.61：3.14.60 加的「⚡ 纯蓝牙按钮行」已按用户要求整块删除 ——
+   空调开关回到与其余车控按钮**同一套语义**：蓝牙优先，连不上/失败自动走云端。 */
+
+/* 时长芯片 */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+/* ★★★ 3.16.94（乐哥 2026-10-24）：「空调预约时间 10 20 30 60 做成一行」——
+   原来四个时长档跟着 .chips 的 flex-wrap:wrap 走，窄屏上会折成 2+2。
+   这组一共就四个短标签，改成永不换行 + 等分宽度：几档都排在同一行，
+   左右内边距从 16px 收到 6px（"10分"三个字本来就窄，不需要那么宽的胶囊）。 */
+#chipDur{flex-wrap:nowrap;gap:6px}
+#chipDur .chip{flex:1 1 0;min-width:0;padding-left:6px;padding-right:6px;white-space:nowrap}
+.chip{
+  padding:9px 16px;border-radius:12px;border:1px solid var(--line);
+  background:var(--card2);color:var(--muted);font-size:13px;
+  font-family:inherit;font-weight:500;cursor:pointer;transition:all .15s;
+  min-height:42px;display:inline-flex;align-items:center;justify-content:center;
+}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;
+  box-shadow:0 3px 12px rgba(59,158,255,.3)
+}
+.chip:active{transform:scale(.94)}
+/* ★ 3.15.21（#231）：判定方案二选一 —— 两枚**等宽** chip（阈值方案 / 趋势方案）。
+   用 grid 1fr/1fr 保证等宽，比 flex:1 更稳（长文案也不会把比例压歪）。 */
+.chips.seg2{display:grid;grid-template-columns:1fr 1fr}
+/* ★ 3.15.23（#236，用户 2026-10-10「切换的时候只有一个弹窗，标签上面没有显示它正在使用的是
+   哪个模式」）：卡片标题右侧的**常驻「当前生效档」**文字 —— 弹窗一闪就没了，得有一直看得见的。
+   （`.sec-inline` 本身已是 flex + space-between ⇒ 直接当第二个子元素即可右对齐。） */
+.sec-now{font-size:12px;font-weight:500;color:var(--accent);letter-spacing:.2px}
+
+/* 全局按钮 */
+.btn{
+  border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:all .12s cubic-bezier(.4,0,.2,1);width:100%;
+  min-height:50px;display:flex;align-items:center;justify-content:center;
+}
+.btn:active{transform:scale(.96)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;
+  box-shadow:0 4px 16px rgba(59,158,255,.25);
+}
+.btn-primary:active{box-shadow:0 2px 8px rgba(59,158,255,.2)}
+.btn-ghost{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+.btn.busy{opacity:.5;pointer-events:none}
+.ble-actions{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+
+/* ★★★ 3.15.28（用户 2026-10-10）：「保存并测试连接 / 退出账户」两按钮布局重做。
+   主操作整行；「退出账户」是破坏性低频操作 ⇒ 降级为右下角小号描边按钮（--danger 色）。 */
+.cfg-actions{display:flex;flex-direction:column;gap:10px;margin-top:2px}
+/* ★★★ 3.15.31：账户卡改**单按钮两态** —— 已登录时 #btnSaveCfg 变「退出登录」并套 .btn-logout
+   （整行、破坏性描边色；原并排的 #btnLogout 已删除）。 */
+.cfg-actions .btn-logout{
+  background:transparent;color:var(--danger);border:1px solid rgba(255,107,107,.35);
+  box-shadow:none;
+}
+.cfg-actions .btn-logout:active{background:var(--danger-bg);transform:scale(.97)}
+
+/* ★★★ 3.14.164 手动选择车机：附近车机列表行
+   ⚠⚠ `.btn` 自带 `width:100%` + `min-height:50px` —— 行内小按钮必须**显式覆盖这两条**，
+      否则按钮会撑满整行、把左侧车机名挤成 0 宽 ⇒ 文字逐字竖排、行高爆炸
+      （2026-10-07 21:07 用户截图那个"一团乱"就是这个：`.car-pick` 撑满 = `.car-main` 坍缩）。
+   ⚠ `.car-sub` 用 nowrap+ellipsis 单行省略，**不要** word-break:break-all（窄宽度下会逐字换行）。 */
+.car-list{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.car-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card2)}
+.car-main{flex:1 1 auto;min-width:0}
+.car-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.car-sub{font-size:12px;opacity:.65;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.car-pick{flex:0 0 auto;width:auto;min-height:0;padding:8px 14px;font-size:13px;border-radius:10px;white-space:nowrap}
+.car-cur{font-size:11px;opacity:.6;white-space:nowrap}
+
+/* ═══════════════════ 键值行（车况详情）═════════════════════════════ */
+.kv{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0;
+  padding:12px 0;border-bottom:1px solid var(--line);
+  transition:background .15s;
+}
+.kv:last-child{border-bottom:none;padding-bottom:0}
+.kv:first-child{padding-top:0}
+.kv:active{background:rgba(255,255,255,.03);border-radius:8px}
+/* ★ 3.14.196：flex item 默认 min-width:auto ⇒ 长标签（如「通知权限（息屏）」）
+   会把 .kv 行撑破、把右侧的值挤出屏幕（360 视口实测）。显式 min-width:0 才允许收缩。 */
+.kv-k{font-size:14px;color:var(--muted);font-weight:500;flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ★ 3.14.196：值**保留折行**（长值如「开机自启」的解释文案要完整显示，不能省略）；
+   单行右对齐的短值不受影响。溢出由上面的 .kv-k 可收缩 + gap 兜住。 */
+.kv-v{font-size:14px;font-weight:600;text-align:right;max-width:60%;min-width:0;word-break:break-all}
+.kv-v.ok{color:var(--ok)}.kv-v.warn{color:var(--warn)}.kv-v.danger{color:var(--danger)}
+.switch-row{padding:14px 0}
+
+/* ═══════════════════ 开关（大尺寸，易操作）═════════════════════════ */
+.switch{
+  width:54px;height:30px;border-radius:18px;background:var(--card2);
+  border:1px solid var(--line);position:relative;cursor:pointer;flex:none;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+}
+.switch i{
+  position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;
+  background:var(--sub);transition:all .25s cubic-bezier(.4,0,.2,1);display:block;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
+}
+.switch.on{background:var(--ok-bg);border-color:var(--ok-line)}
+.switch.on i{left:26px;background:var(--ok);box-shadow:0 2px 8px rgba(0,230,118,.4)}
+
+/* ═══════════════════ 胎压网格 ══════════════════════════════════════ */
+.tire-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tire{
+  background:var(--card2);border-radius:var(--radius-xs);padding:14px;text-align:center;
+  transition:transform .1s;
+}
+.tire:active{transform:scale(.97)}
+.tire-pos{font-size:12px;color:var(--muted);font-weight:500}
+.tire-val{font-size:19px;font-weight:700;margin-top:4px}
+.tire-val.bad{color:var(--warn)}
+/* ★ 3.14.59（用户）：胎温行 —— 比胎压小一档，做成"同一张卡的副信息"，
+   不做成两个并列大字（那会让人以为是两个独立指标）。 */
+.tire-temp{font-size:11.5px;color:var(--sub);margin-top:3px;letter-spacing:.2px}
+.tire-temp.hot{color:var(--warn)}      /* ≥ 60℃ 提醒（长时间高速后的正常偏高也算，故只提示不报警） */
+
+/* ═══════════════════ 蓝牙页面（环形指示器）═════════════════════════ */
+.ble-hero{text-align:center;padding:24px 16px}
+/* ★ 3.14.21 用户要求：圆环内要放进「立即连接 / 断开」两个按钮，
+   原 140px（内圈仅 112px）根本装不下 → 放大到 200px（内圈 168px）。 */
+/* ★ 3.14.21：把 --ble-sweep 注册成 <angle>，这样它才受 .ble-ring 上的
+   transition 管辖 —— 信号跳变时亮弧是「绕着长出去」而不是硬切。
+   不支持 @property 的旧 WebView 会忽略这行，最多退化成无过渡，不影响功能。 */
+@property --ble-sweep{syntax:'<angle>';inherits:true;initial-value:0deg}
+.ble-ring{
+  /* ★ 3.14.21 用户要求：环色**随信号强度变化**，由 JS 按 RSSI 注入这三个变量：
+       -100(最弱/红) → -30(最强/绿)，色相 0→145 线性映射。
+     这里给一组「满格绿」默认值兜底，避免变量未定义时渲染色块；
+     未连上时不给 .on，仍是灰环。 */
+  --ble-c:hsl(145,82%,60%);
+  --ble-c2:hsl(145,82%,46%);
+  --ble-glow:hsla(145,85%,55%,.33);
+  /* ★ 3.14.21 用户要求：圆环要「动起来，类似液体充满」。
+     --ble-sweep = 环上亮弧绕了多少度（= 信号强度，越强绕得越满）
+     --ble-lvl   = 内圈液面高度（同样跟着信号走）
+     两个都由 JS 在 renderBle() 里写。 */
+  --ble-sweep:0deg;
+  --ble-lvl:0%;
+  width:200px;height:200px;margin:0 auto 18px;border-radius:50%;
+  background:conic-gradient(var(--line) 0deg,var(--line) 360deg);
+  display:flex;align-items:center;justify-content:center;transition:.4s cubic-bezier(.4,0,.2,1);
+  border:1px solid var(--line);box-shadow:0 4px 24px rgba(0,0,0,.3);
+}
+/* 亮弧从 12 点方向起、顺时针绕 --ble-sweep 度，剩下的是底线色 ⇒ 一眼看出「充满了几成」
+   ★★ 3.14.26（用户：「一直没有颜色也没有填充，动画和信号没关联」）：
+   原来所有着色/填充都挂在 .on（仅「已连接」）下面 —— 没连上就整圈全灰、无液面，
+   偏偏 BLE 信号又抖，于是动画跟着连接状态一闪一灭。
+   现在把 .sig 加进来：**只要扫到有效信号就着色/起液面**，与是否已连接解耦。
+   .on 仍单独负责「图标切开锁/闭锁」的语义。 */
+.ble-ring.on,.ble-ring.sig{background:conic-gradient(var(--ble-c) 0deg,var(--ble-c2) var(--ble-sweep),var(--line) var(--ble-sweep),var(--line) 360deg)}
+.ble-ring.on .ble-ring-in,.ble-ring.sig .ble-ring-in{box-shadow:0 0 28px var(--ble-glow), inset 0 0 20px var(--ble-glow)}
+.ble-ring-in{
+  position:relative;overflow:hidden;
+  width:168px;height:168px;border-radius:50%;background:var(--card);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  backdrop-filter:var(--glass);
+}
+/* ══════ 内圈液体（水位 = 信号强度，液面持续涌动）══════
+   原理：两层**不是正圆**的巨形色块（336×336，border-radius 38% / 42%），
+   各自绕自身圆心反向旋转。形状的「边」和「角」交替转到液面处，
+   于是露在液面以上的轮廓就上下起伏 ⇒ 看起来就是水在涌。
+   水位只改 top，不用动画布，纯 transform 动画，GPU 友好。 */
+.ble-liquid{
+  position:absolute;top:0;right:0;bottom:0;left:0;border-radius:50%;overflow:hidden;z-index:0;pointer-events:none;
+  opacity:0;transition:opacity .5s ease;
+  box-shadow:inset 0 0 26px var(--ble-glow);
+}
+.ble-ring.on .ble-liquid,.ble-ring.sig .ble-liquid{opacity:.34}
+.ble-liquid i{
+  position:absolute;left:-50%;width:200%;height:200%;
+  top:calc(100% - var(--ble-lvl,0%));
+  background:var(--ble-c);filter:blur(.4px);
+  transition:top .9s cubic-bezier(.4,0,.2,1);
+  will-change:transform;
+}
+.ble-liquid i.w1{border-radius:38%;animation:bleWave 8s linear infinite}
+.ble-liquid i.w2{border-radius:42%;background:var(--ble-c2);opacity:.8;
+  animation:bleWave 13s linear infinite reverse}
+@keyframes bleWave{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+/* ★ 3.14.21：原来的 28px emoji（🔑/🔓）改成**小线性图标**，
+   开锁/闭锁两个 SVG 叠放，由 JS 切 .on 控制显隐。 */
+.ble-ring-ico{line-height:0;position:relative;z-index:1}
+.ble-ring-ico svg{
+  width:26px;height:26px;display:none;
+  fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;
+  color:var(--muted);transition:color .3s;
+}
+.ble-ring-ico .ble-ico-shut{display:block}
+.ble-ring-ico.on .ble-ico-shut{display:none}
+.ble-ring-ico.on .ble-ico-open{display:block}
+.ble-ring.on .ble-ring-ico svg,.ble-ring.sig .ble-ring-ico svg{color:var(--ble-c)}
+.ble-ring-txt{font-size:13px;color:var(--muted);font-weight:600;position:relative;z-index:1}
+.ble-ring.on .ble-ring-txt,.ble-ring.sig .ble-ring-txt{color:var(--ble-c)}
+/* ★ 3.14.21：页尾移植上来的两个按钮（放在动态文字正下方） */
+.ble-ring-btns{display:flex;gap:7px;margin-top:9px;position:relative;z-index:1}
+.ble-rb{
+  border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);
+  font-family:inherit;font-size:10.5px;font-weight:600;letter-spacing:.2px;
+  padding:5px 10px;border-radius:9px;cursor:pointer;white-space:nowrap;
+  transition:transform .1s,opacity .15s;
+}
+.ble-rb:active{transform:scale(.95)}
+.ble-rb.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.ble-rb.busy{opacity:.45;pointer-events:none}
+/* ★ 3.14.27：连接成功态 —— 「立即连接」变成绿色的「已连接」（用户要的明确反馈） */
+.ble-rb.done{background:rgba(48,196,120,.14);border-color:rgba(48,196,120,.55);color:#37d07f}
+.ble-rb.done::before{content:"✓ ";font-weight:700}
+html[data-theme="light"] .ble-rb{background:rgba(22,40,70,.05)}
+html[data-theme="light"] .ble-rb.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+/* ★★★ 3.14.195：蓝牙卡片信息区改「两行两列」（用户：「竖排太大了…比亚迪车机和 mac 地址同一排、
+   运动状态和信号值第二排、明确一下名称」）。每个值是「标签 + 值」，行内左右分列。
+   ⚠ 旧的 .ble-name / .ble-mac / .ble-rssi 是**块级单行**样式（.ble-mac margin-top:5px、
+     .ble-rssi margin-top:8px）：在 flex 子项里这些 margin 会把基线顶偏 ⇒ 本版起 index.html
+     不再引用它们（保留类名定义仅为兼容旧引用，实际无元素使用）。
+   布局：每行 space-between；cell 内 label 固定、值 flex 收窄 + 省略号（长车机名 / MAC 不撑破卡片）。 */
+.ble-info{margin-top:11px;display:flex;flex-direction:column;gap:9px}
+.ble-info-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ble-info-cell{display:flex;align-items:baseline;gap:6px;flex:1 1 0;min-width:0}
+/* ★ 右侧列（第 1 行=MAC、第 2 行=信号）多分一份弹性：MAC 是 17 字符定长（129px），
+   360 屏下 1:1 平分只剩 108px 会截成「B0:10:A0:77…」；1:1.5 后右侧 ≈173px ⇒ MAC 完整、
+   左侧车机名仍有 115px（≈ 6 个中文字）够用。400px 以上两者本就都放得下，比例无副作用。
+   ⚠ 这**不是**写死宽度（写死会在长车机名/大字号下重新溢出）——弹性仍会收缩 + 省略号兜底。 */
+.ble-info-cell:last-child{justify-content:flex-end;flex:1.5 1 0}
+/* ★ 3.14.196：**第 2 行单独调弹性**（运动 / 信号）。
+   第 1 行右列是 MAC（17 字符定长，需要 1.5 那份宽），但第 2 行右列只是「-80 dBm」这类短值
+   （约 56px）—— 而左边的运动文案最长是「静止 18s 后停扫」（约 167px），
+   跟着第 1 行用 1.5 会被省略号截掉 20px（真渲染实测：motionCut=20:CUT）。
+   ⇒ 第 2 行右列让到 0.6：左列 ≈180px（放得下最长文案）、右列 ≈108px（信号值 79px 够用）。 */
+.ble-info-row:nth-child(2) .ble-info-cell:last-child{flex:0.6 1 0}
+.ble-info-k{font-size:11.5px;color:var(--sub);font-weight:600;letter-spacing:.4px;flex:0 0 auto;opacity:.85}
+.ble-info-v{font-size:14px;font-weight:600;color:var(--txt);letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ble-info-v.mono{font-family:ui-monospace,monospace;font-size:12.5px;letter-spacing:.6px;color:var(--sub);font-weight:500}
+.ble-info-v.accent{color:var(--accent)}
+.ble-name{font-size:18px;font-weight:600;letter-spacing:.3px}
+.ble-mac{font-size:12px;color:var(--sub);font-family:ui-monospace,monospace;margin-top:5px;letter-spacing:.8px}
+.ble-rssi{font-size:14px;color:var(--accent);font-weight:600;margin-top:8px}
+
+/* 信号尺（低对比 · 舒适阅读） */
+.ruler{margin:8px 0 16px}
+.ruler-bar{
+  height:18px;border-radius:10px;position:relative;overflow:visible;
+  background:linear-gradient(90deg,
+    rgba(0,200,140,.35) 0%,
+    rgba(255,180,70,.4) 50%,
+    rgba(255,110,100,.38) 100%);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.12);
+}
+.ruler-fill{
+  position:absolute;top:-5px;width:6px;height:28px;border-radius:4px;
+  background:var(--txt);opacity:.85;
+  box-shadow:0 2px 8px rgba(0,0,0,.25),0 0 0 1px rgba(255,255,255,.15);
+  left:50%;transition:left .35s cubic-bezier(.4,0,.2,1);transform:translateX(-50%)
+}
+.ruler-mark{position:absolute;top:-28px;transform:translateX(-50%);font-size:11px;color:var(--sub);white-space:nowrap;font-weight:500}
+.ruler-mark::after{
+  content:'';position:absolute;left:50%;top:20px;width:2px;height:14px;
+  background:var(--txt);opacity:.3;transform:translateX(-50%)
+}
+.ruler-scale{display:flex;justify-content:space-between;font-size:11.5px;color:var(--sub);margin-top:10px;font-weight:500;letter-spacing:.3px}
+
+/* ═══════════════════ 日志 & 辅助组件 ════════════════════════════════ */
+.log{
+  background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius-s);
+  padding:12px;font-size:12px;line-height:1.7;color:var(--muted);
+  max-height:240px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;
+  font-family:ui-monospace,Menlo,"Cascadia Code",monospace;margin:0;
+  -webkit-user-select:text;user-select:text;
+}
+/* ★★★ 3.15.61：更新日志卡 = 累计版本历史（新→旧）—— 去掉等宽/pre-wrap，改成排版列表 */
+.log.chg{
+  font-family:inherit;white-space:normal;word-break:normal;
+  max-height:42vh;overflow-y:auto;padding:12px 12px 6px;
+}
+.chg-ver{
+  display:flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;color:var(--txt);
+  margin:14px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--line);
+}
+.chg-ver:first-child{margin-top:0}
+.chg-ver .chg-tag{
+  font-size:10px;font-weight:600;color:var(--accent);
+  border:1px solid var(--accent);border-radius:6px;padding:0 5px;line-height:15px;
+}
+.chg-item{
+  position:relative;padding-left:13px;margin-top:3px;
+  font-size:12px;line-height:1.75;color:var(--muted);
+}
+.chg-item::before{
+  content:"·";position:absolute;left:2px;top:0;color:var(--accent);font-weight:700;
+}
+/* ★★★ 3.15.90：更新日志里每条版本下方的「⬇ 下载」按钮 */
+.chg-dl{
+  margin:6px 0 4px 13px;
+  background:var(--card2);border:1px solid var(--line);color:var(--accent);
+  border-radius:8px;padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;
+  display:inline-flex;align-items:center;gap:4px;
+  transition:all .12s;min-height:32px;
+}
+.chg-dl:active{transform:scale(.95)}
+.mini-btn{
+  background:var(--card2);border:1px solid var(--line);color:var(--muted);
+  border-radius:8px;padding:5px 12px;font-size:12px;font-family:inherit;cursor:pointer;
+  transition:all .12s;min-height:32px;display:inline-flex;align-items:center;
+}
+.mini-btn:active{color:var(--accent);transform:scale(.95)}
+
+/* 行程统计 */
+.stat{text-align:center;padding:18px 12px;transition:transform .1s}
+.stat:active{transform:scale(.98)}
+.stat-v{font-size:24px;font-weight:700;color:var(--accent)}
+/* ★★★ 3.15.113（乐哥 2026-10-14：「行程页四个卡片文字大小不一样，好别扭」）：
+   平均能耗是云端原样串（DM-i 如「(6.7度+2.6升)/百公里」），24px 必换行成两行，
+   视觉上比旁边三卡的大一号。长值自动降字号（JS 按长度挂 .long），单行放得下、
+   四张卡重新回到同一档视觉重量。 */
+.stat-v.long{font-size:16px;line-height:1.3;word-break:keep-all}
+.stat-k{font-size:12px;color:var(--muted);margin-top:6px}
+.trip-hint{color:var(--sub);font-size:12px;line-height:1.45;padding:2px 0 10px}
+.trip-list{max-height:300px;overflow-y:auto}
+.trip-item{
+  display:flex;justify-content:space-between;padding:11px 0;
+  border-bottom:1px solid var(--line);font-size:13px;
+  transition:background .1s;
+}
+.trip-item:active{background:rgba(255,255,255,.02)}
+.trip-item:last-child{border-bottom:none}
+.trip-item .tm{color:var(--muted);font-family:ui-monospace,monospace}
+.trip-item .mi{font-weight:600}
+.empty{text-align:center;color:var(--sub);font-size:13px;padding:22px 0}
+
+/* ═══ 车辆能耗 · 7 天条形（★ 3.15.17 / #226）═══
+   条高按当日最大值等比缩放；数值标签在柱下方，驾驶场景一眼可读。 */
+.en-bars{display:flex;align-items:flex-end;gap:6px;min-height:66px;padding:8px 2px 2px}
+.en-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;min-width:0}
+.en-bar i{display:block;width:100%;max-width:26px;border-radius:4px 4px 2px 2px;
+  background:linear-gradient(180deg,var(--accent),rgba(59,158,255,.35))}
+.en-bar b{font-size:9px;font-weight:500;color:var(--muted);white-space:nowrap}
+
+/* ═══ 自定义控车音效 行（★ 3.15.17 / #229）═══
+   `.snd-k` 是 flex item：必须给 min-width:0，否则长文案不可收缩会撑破整行（老坑）。 */
+.snd-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.snd-row:last-child{border-bottom:0}
+.snd-k{flex:1 1 auto;min-width:0;font-size:13px;color:var(--txt);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snd-btn{flex:0 0 auto;font-size:11px;padding:5px 9px;margin:0}
+.snd-btn.on{border-color:var(--accent);color:var(--accent)}
+
+/* 表单输入框 */
+.fld{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.fld:last-of-type{border-bottom:none}
+.fld span{font-size:13.5px;color:var(--muted);flex:none;width:80px;font-weight:500}
+.fld input{
+  flex:1;background:var(--bg2);border:1px solid var(--line);border-radius:12px;
+  padding:12px 14px;color:var(--txt);font-size:14px;font-family:inherit;outline:none;
+  -webkit-user-select:text;user-select:text;min-width:0;
+  transition:border-color .15s;
+}
+.fld input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,158,255,.12)}
+/* ★★★ 3.16.30（乐哥 2026-10-17）：「执行命令做成选择框」 —— 自定义卡片的 <select>。
+   与 .fld input 同一套观感；原生下拉箭头在深色主题下是浅灰方块，换成自绘 SVG 细箭头。
+   ⚠ option 的配色由系统渲染，同色系设一遍只是尽量减少割裂（安卓各家表现不一）。 */
+.fld select{
+  flex:1;background:var(--bg2);border:1px solid var(--line);border-radius:12px;
+  padding:12px 34px 12px 14px;color:var(--txt);font-size:14px;font-family:inherit;
+  outline:none;min-width:0;appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238b93a7' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;
+  transition:border-color .15s;
+}
+.fld select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,158,255,.12)}
+.fld select option{background:var(--bg2);color:var(--txt)}
+/* ★ 3.14.184：控制 PIN 的「显示/隐藏」小控件。
+   ⚠ 它是 .fld 内的绝对定位小图标，**绝不能带 .btn 类**（.btn 有 width:100%，
+     会把这一行撑坏 —— 车机名被挤成竖排那次事故就是这个原因）。 */
+.pinbox{position:relative;flex:1;display:flex;min-width:0}
+.pinbox input{padding-right:42px}
+.pin-eye{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  font-style:normal;font-size:15px;line-height:1;color:var(--muted);
+  cursor:pointer;user-select:none;-webkit-user-select:none;
+}
+.pin-eye.on{color:var(--accent)}
+.hint{font-size:12.5px;color:var(--muted);margin-top:12px;min-height:18px;line-height:1.55}
+.hint.ok{color:var(--ok)}.hint.err{color:var(--danger)}
+
+/* ═══════════════════ 底部导航栏（保持原结构不动）═════════════════════ */
+.navbar{
+  display:grid;grid-template-columns:repeat(4,1fr);flex:none;
+  background:var(--bg2);border-top:1px solid var(--line);
+  padding:8px 8px calc(env(safe-area-inset-bottom,0px) + 8px);
+  backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);
+  position:relative;z-index:10;
+}
+.nav-item{
+  background:none;border:none;color:var(--sub);font-family:inherit;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:6px 0;cursor:pointer;font-size:11.5px;transition:all .15s;
+  min-height:52px;justify-content:center;border-radius:12px;
+  position:relative;
+}
+.nav-item:active{background:rgba(255,255,255,.04)}
+.nav-item.active{color:var(--accent)}
+.nav-item.active::before{
+  content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:24px;height:3px;border-radius:2px;background:var(--accent);
+}
+.nav-item svg{width:24px;height:24px;transition:transform .15s}
+.nav-item:active svg{transform:scale(.9)}
+
+/* ═══════════════════ 弹层 / Toast ════════════════════════════════════ */
+.sheet{
+  position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.72);z-index:90;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  animation:sheetIn .2s ease-out;
+}
+@keyframes sheetIn{from{opacity:0}to{opacity:1}}
+.sheet[hidden]{display:none}
+.sheet-card{
+  background:var(--card);border:1px solid var(--line);border-radius:24px;
+  padding:24px;width:100%;max-width:360px;box-shadow:var(--shadow);text-align:center;
+  animation:cardUp .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes cardUp{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:none}}
+.sheet-title{font-size:17px;font-weight:600}
+.sheet-sub{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.6;min-height:38px}
+.sheet-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+
+/* ★★★ 3.15.77（2026-10-11）：扫码授权弹层样式**恢复**（3.15.76 恢复弹层时漏了这里，
+   导致 `<img>` 无约束、二维码撑满卡片）。尺寸较 3.14.x 原版（76vw/320px）收紧一档，
+   避免手机上一屏塞不下 —— 不影响官方 App 识别（≥240px 足够）。 */
+.wq-qrbox{
+  background:#fff;border-radius:14px;padding:12px;margin:14px auto 8px;
+  width:min(62vw,240px);box-shadow:0 6px 24px rgba(0,0,0,.4);
+}
+.wq-qrbox img{display:block;width:100%;height:auto;image-rendering:pixelated}
+.wq-steps{margin:14px 0 6px;display:flex;flex-direction:column;gap:10px}
+.wq-step{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;line-height:1.6;color:var(--txt)}
+.wq-step i{
+  flex:0 0 22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;
+  font-style:normal;font-size:12px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;margin-top:2px;
+}
+.wq-step b{color:var(--accent)}
+
+/* Toast 提示（底部居中，带动画） */
+.toast{
+  position:fixed;left:50%;bottom:100px;transform:translate(-50%,16px);
+  background:rgba(12,18,30,.96);border:1px solid var(--line);color:var(--txt);
+  padding:14px 24px;border-radius:14px;font-size:14px;max-width:86vw;text-align:center;
+  opacity:0;pointer-events:none;transition:all .25s cubic-bezier(.4,0,.2,1);
+  z-index:99;box-shadow:var(--shadow);
+  backdrop-filter:blur(8px);
+}
+html[data-theme="light"] .toast{background:rgba(255,255,255,.97)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.ok{border-color:var(--ok-line);color:var(--ok);background:rgba(0,230,118,.08)}
+.toast.err{border-color:rgba(255,107,107,.3);color:var(--danger);background:rgba(255,107,107,.08)}
+/* ★★★ 3.15.19（#230）：中性档 toast —— 代码里早就在用 'warn'（排队提示 / 191 的"未回执"），
+   样式表却一直没有对应规则 ⇒ 以前落到默认灰底。现在补上，与控制台账的黄色「未确认」一致。 */
+.toast.warn{border-color:var(--warn-line);color:var(--warn);background:var(--warn-bg)}
+
+/* 关于作者 */
+.about-author { margin-top:12px;padding:12px 14px;border-radius:14px;
+  background:rgba(59,158,255,.06);font-size:13px;line-height:1.75; }
+.about-author p { margin:5px 0; }
+.about-author p:first-child { font-weight:600;margin-bottom:8px; }
+
+/* ═══════════════════ HMI 动画增强 ══════════════════════════════════ */
+
+/* 页面切换滑动效果 */
+.page.slide-left{animation:slideLeft .25s ease-out}
+.page.slide-right{animation:slideRight .25s ease-out}
+@keyframes slideLeft{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes slideRight{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+
+/* ★ 3.14.23 左右滑动切页（用户要的"跟手"体感）
+   dragging：手指还在拖 —— 必须关掉 pageIn 入场动画、并且不要过渡，
+             否则 transform 会被动画/transition 抢走，位移跟手就断了。
+   springback：松手但没到切页阈值 —— 用一条短过渡弹回原位。 */
+.page.dragging{animation:none!important;transition:none!important;will-change:transform}
+.page.springback{animation:none!important;
+  transition:transform .2s cubic-bezier(.22,.61,.36,1),opacity .2s ease-out}
+
+/* 按钮点击涟漪效果预留 */
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.2);
+  transform:scale(0);animation:ripple .5s linear;pointer-events:none}
+@keyframes ripple{to{transform:scale(4);opacity:0}}
+
+/* 加载动画 */
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{animation:spin .8s linear infinite}
+
+/* 脉冲提示（用于在线/连接等状态） */
+@keyframes pulseGlow{
+  0%,100%{box-shadow:0 0 0 0 currentColor}
+  50%{box-shadow:0 0 0 6px transparent}
+}
+.pulse-glow{animation:pulseGlow 2s infinite}
+
+/* 安全区域适配 */
+@supports(padding:max(0px)){
+  .topbar{padding-top:max(12px,env(safe-area-inset-top))}
+  .navbar{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+}
+
+/* 减少动效偏好 */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* ── 3.14.40 蓝牙角标（用户：蓝牙连接时每个控制卡片右上角显示蓝牙角标）──
+   节点由 app.js 启动时注入（.grid4 .ctl 8 个按钮 + .ac-card 空调卡片），
+   显隐由 <body> 上的 .ble-on 驱动（renderBle 按 st.connected 切换）。
+   · 平时 opacity:0 + 缩小到 0.6 —— 不占视觉，也不影响布局；
+   · 蓝牙连上 → 一齐浮现（蓝底蓝牙符），断开 → 一齐熄灭；
+   · .ctl 自带 overflow:hidden，角标内缩 4px 摆放不会被裁；
+   · pointer-events:none —— 纯装饰，不挡按钮点击。 */
+.ble-badge{
+  position:absolute;top:4px;right:4px;width:16px;height:16px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(76,157,255,.18);color:#4C9DFF;
+  opacity:0;transform:scale(.6);
+  transition:opacity .28s ease,transform .28s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;z-index:3;
+}
+.ble-badge svg{width:9px;height:9px;display:block}
+body.ble-on .ble-badge{opacity:1;transform:scale(1)}
+html[data-theme="light"] .ble-badge{
+  background:rgba(28,116,220,.12);color:#1C74DC;
+}
+/* 空调卡片是普通 .card（无定位上下文），补一个定位锚点；
+   顶部留出空间防止角标压住标题。 */
+.ac-card{position:relative}
+.ac-card .ble-badge{top:10px;right:12px}
+
+/* ══════════════════════════════════════════════════════════════
+   ★ 2026-09-29 新增（用户本轮 8 条需求里的界面部分）
+     ① 通道标签 .chan-tag（蓝牙 / 云端）
+     ② 空调预约台账 .ac-books
+     ③ 控制日志 .cmdlog
+     ④ 蓝牙角标补强（.ble-live 亮一档 + 空调按钮上的角标）
+     ⑤ 状态胶囊允许换行（第四个「空调」胶囊要放得下）
+   ══════════════════════════════════════════════════════════════ */
+
+/* ① 区块标题右侧的通道标签 —— 一眼看清"点下去走蓝牙还是云端" */
+.chan-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  margin-left:8px;padding:2px 8px;border-radius:10px;
+  font-size:10px;font-weight:600;letter-spacing:.2px;
+  vertical-align:middle;white-space:nowrap;
+  background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);
+  color:var(--muted);
+}
+.chan-tag.ble{
+  background:rgba(76,157,255,.16);border-color:rgba(76,157,255,.42);color:#6FB2FF;
+}
+.chan-tag.ble::before{
+  content:'';width:5px;height:5px;border-radius:50%;background:#4C9DFF;
+  box-shadow:0 0 6px rgba(76,157,255,.9);
+}
+.chan-tag.ghost{background:transparent;border-color:transparent;color:var(--sub);font-weight:500}
+html[data-theme="light"] .chan-tag{
+  background:rgba(16,32,56,.05);border-color:rgba(16,32,56,.14);color:var(--muted);
+}
+html[data-theme="light"] .chan-tag.ble{
+  background:rgba(25,118,210,.10);border-color:rgba(25,118,210,.32);color:#1560BD;
+}
+
+/* ② 空调预约台账 */
+.ac-books{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)}
+html[data-theme="light"] .ac-books{border-top-color:rgba(0,0,0,.07)}
+.ac-books-hd{
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  font-size:12.5px;font-weight:600;color:var(--txt);margin-bottom:8px;
+}
+.ac-book-list{display:flex;flex-direction:column;gap:8px}
+.ac-book{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 11px;border-radius:12px;
+  background:var(--card2);border:1px solid var(--line);
+}
+.ac-book.off{opacity:.5}
+.ac-book.off .ac-book-t{text-decoration:line-through}
+.ac-book-main{flex:1;min-width:0}
+.ac-book-t{font-size:13px;font-weight:600;color:var(--txt)}
+.ac-book-s{font-size:11px;color:var(--muted);margin-top:2px}
+.ac-book-s em{font-style:normal;color:var(--accent)}
+.ac-book-ops{display:flex;gap:6px;flex-shrink:0}
+.ab-op{
+  padding:5px 10px;border-radius:9px;font-size:11px;font-weight:600;
+  background:transparent;border:1px solid rgba(255,255,255,.18);color:var(--muted);
+  cursor:pointer;
+}
+.ab-op.rev{color:var(--warn);border-color:rgba(255,183,77,.42);background:var(--warn-bg)}
+.ab-op.del{color:var(--danger);border-color:rgba(255,107,107,.36);background:var(--danger-bg)}
+.ab-op:active{transform:scale(.94)}
+html[data-theme="light"] .ab-op{border-color:rgba(16,32,56,.18)}
+
+/* ③ 控制日志 */
+.cmdlog{
+  margin-top:10px;max-height:320px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;gap:6px;
+}
+.cmdlog-empty{
+  padding:14px 4px;font-size:12px;color:var(--sub);text-align:center;
+}
+.cmdlog-row{
+  display:grid;grid-template-columns:1fr auto;gap:2px 8px;
+  padding:8px 10px;border-radius:10px;
+  background:var(--card2);border-left:2px solid var(--ok-line);
+}
+.cmdlog-row.bad{border-left-color:var(--danger)}
+/* ★★★ 3.15.19（#230）：**未确认**档 —— 指令已下发、但没等到车端执行确认
+   （既不是成功、也不是失败）。以前这类记录走 `.bad` 红字 ⇒ 一排「解锁｜失败」，
+   把"只是没回执"报成了"没解锁"，正是用户 2026-10-10 反馈的现象。 */
+.cmdlog-row.unc{border-left-color:var(--warn-line)}
+/* ★★★ 3.16.14（乐哥 2026-10-16「如果被挡了，为什么被挡的控车日志里面应该有显示才对吧？」）：
+   **未执行**档 —— 本该动作（波形上的锁车/解锁竖线就是"判定达成"标注，与是否发起控车解耦），
+   但被一道门槛挡下（服务重建静默期 / 车况门控 / 锁车冷却 / 临时下车 / 开关关 / 云端冷却…），
+   **压根没发起控车**。既非成功、也非失败 ⇒ 用**灰**，与红(失败)/黄(未确认)三者互不混淆。 */
+.cmdlog-row.skip{border-left-color:var(--muted)}
+.cmdlog-row.skip .cl-res{color:var(--muted)}
+.cl-via.skip{background:rgba(160,170,190,.14);color:var(--muted)}
+.cl-l{min-width:0}
+.cl-t{font-size:10.5px;color:var(--sub)}
+.cl-m{font-size:13px;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-r{display:flex;align-items:center;gap:6px;justify-self:end}
+.cl-via{
+  font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;
+  background:rgba(255,255,255,.08);color:var(--muted);
+}
+.cl-via.ble{background:rgba(76,157,255,.16);color:#6FB2FF}
+.cl-via.cloud{background:rgba(160,170,190,.14);color:var(--muted)}
+.cl-res{font-size:11px;font-weight:600;color:var(--ok)}
+.cmdlog-row.bad .cl-res{color:var(--danger)}
+.cmdlog-row.unc .cl-res{color:var(--warn)}   /* ★ 3.15.19（#230）未确认 = 黄字 */
+/* ★ 3.14.113：触发类型标签（自动·走近 / 自动·离开 / 手动） */
+.cl-trig{
+  font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;
+  background:rgba(94,214,143,.14);color:#7FD8A0;
+}
+html[data-theme="light"] .cl-trig{background:rgba(24,140,80,.12);color:#1E8C50}
+.cl-d{
+  grid-column:1 / -1;font-size:11px;color:var(--muted);
+  white-space:normal;word-break:break-all;
+}
+/* ★ 3.14.113：信号值 / 手机状态 / 用时 这一小段 */
+.cl-meta{color:var(--sub)}
+
+/* ④ 蓝牙角标：真连上时"亮一档"（实心 + 更饱和）；空调按钮上的角标缩小 */
+body.ble-live .ble-badge{
+  background:#4C9DFF;color:#fff;box-shadow:0 0 8px rgba(76,157,255,.55);
+}
+#btnAcOn,#btnAcOff{position:relative}
+.btn .ble-badge{top:3px;right:4px;width:14px;height:14px}
+.btn .ble-badge svg{width:8px;height:8px}
+
+/* ⑤ 状态胶囊允许换行：加了第四个「空调」胶囊后右上角放不下就折到第二行。
+   ★★★ 3.14.59 修正：这条原先写的是 `max-width:calc(100% - 26px)` —— 几乎等于整卡宽度，
+   **四个胶囊（约 225px）永远塞得下 ⇒ flex-wrap 形同虚设，从来没真折过行**，
+   窄屏上就一路向左溢出压到车名 / 车牌（用户报的「小字动态文字挡住车牌」）。
+   现在按卡宽 46% 限死：
+     · 窄屏（卡片 ≈332px → 上限 152px）：4 个胶囊放不下 → **自动折成两排**（用户要的两排）；
+     · 宽屏车机（卡片 ≈1252px → 上限 576px）：一行放得下 → 保持一排，也不难看。
+   左侧 54% 永远是车名 / 车牌的干净区。 */
+.pill-row{flex-wrap:wrap;justify-content:flex-end;max-width:46%}
+
+/* ══════════════════════════════════════════════════════════════
+   ⑥ 2026-09-29 本地化：设置页「运行日志」只读文本框
+      日志不再上云，落在手机本机；这个框用来看 / 复制出去发作者排障。
+      等宽字体 + 可纵向滚动，长行不换行（方便整段复制）。
+   ══════════════════════════════════════════════════════════════ */
+.logbox{
+  width:100%;margin-top:10px;padding:10px 11px;border-radius:12px;
+  background:var(--card2);border:1px solid var(--line);
+  color:var(--txt);font-size:11px;line-height:1.55;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  resize:vertical;overflow:auto;white-space:pre;
+  -webkit-user-select:text;user-select:text;
+}
+.logbox::placeholder{color:var(--sub)}
+
+/* ═══ ★ 2026-10-04 媒体蓝牙闭环校验（隐藏式设置）═══ */
+/* 已配对设备列表：点一行即绑定 */
+.bt-list{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.bt-list[hidden]{display:none}
+.bt-item{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.bt-item:last-child{border-bottom:none}
+.bt-item:active{background:rgba(255,255,255,.04)}
+.bt-item.bound{background:var(--ok-bg,rgba(0,230,118,.08))}
+.bt-name{font-size:14px;font-weight:600;color:var(--txt);word-break:break-all}
+.bt-name em{font-style:normal;font-size:12px;color:var(--ok);margin-left:6px}
+.bt-mac{font-size:12px;color:var(--muted);flex:none;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* ═══ ★ 3.14.177 锁车动作多选（锁车必选 · 关空调/熄火/关车窗可多选）═══ */
+/* 用户 2026-10-08：「这个按钮不要做成简单的开启和关闭。要做成多选项 ——
+   锁车是必选项，剩下的三个按钮是多选项。」
+   ★ 3.16（用户「三个选择做成同一排」）：flex 改 **nowrap + 均分**，永远挤在同一行，不换行。
+   ★ 3.16.15（乐哥「把熄火和熄火候选也加进去……保持这几个按钮在同一排」）：
+   变成四项 锁车（必选）/ 熄火 / 熄火候选 / 关车窗 —— 仍 nowrap 均分，gap/padding/字号一并收紧。
+   · .locked（锁车那项）用弱化色 + disabled，一眼看出"取消不了"。
+   ⚠ 判据/落盘全在原生侧（CredentialManager.lockSteps），这里只管长什么样。 */
+.locksteps{display:flex;flex-wrap:nowrap;gap:5px;margin:7px 0 3px;padding:1px 0}
+.lstep{flex:1 1 0;min-width:0;justify-content:center;display:flex;align-items:center;gap:5px;font-size:13px;
+  color:var(--txt);cursor:pointer;-webkit-user-select:none;user-select:none;white-space:nowrap}
+.lstep input[type=checkbox]{width:17px;height:17px;flex:none;margin:0;
+  accent-color:#3b82f6;cursor:pointer}
+.lstep.locked{color:var(--muted);cursor:default}
+.lstep.locked input[type=checkbox]{cursor:default;opacity:.7}
+
+
+/* ═══════════════════ ★ 3.15.32 音效库面板 ═══════════════════════════ */
+.snd-lib{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  margin:12px 0 4px;max-height:46vh;overflow-y:auto;padding-right:2px;
+}
+.snd-item{
+  display:flex;align-items:center;justify-content:space-between;gap:6px;
+  padding:9px 9px 9px 12px;border-radius:12px;background:var(--card2);
+  border:1px solid var(--line);cursor:pointer;font-size:13.5px;transition:all .15s;
+}
+.snd-item:active{transform:scale(.98)}
+.snd-item.active{border-color:var(--accent);color:var(--accent);background:rgba(64,158,255,.10)}
+.snd-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snd-play{
+  flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);
+  background:transparent;color:var(--txt);font-size:11px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0;
+}
+.snd-play:active{background:var(--bg2)}
+
+/* ★★★ 3.15.40（用户 2026-10-10）：「纯电车隐藏燃油类数据，且隐藏后保持布局对齐」——
+   隐藏后把容器列数一起改，避免留出空档 / 塌向一侧。
+   · #heroMetric.ev：首页指标行 4 列 → 2 列（电量 / 纯电续航 居中撑满）。
+   · #tripStats.ev ：行程统计行 2 列 → 3 列（总里程 / 纯电里程 / 平均能耗 一行摆满）。
+   优先级：#id.class 高于 .hero-metric / .grid2，稳定覆盖。 */
+#heroMetric.ev{grid-template-columns:repeat(2,1fr)}
+#tripStats.ev{grid-template-columns:repeat(3,1fr)}
+
+/* ══════════════════════════════════════════════════════════════
+   ★★★ 3.15.82（用户 2026-10-11）：「高级设置」面板
+   一组可调参数 = 名称 + 当前值输入 + 默认值 + 一句话说明。
+   复用现有 .card/.foldable/.sheet 结构，只补「参数行」这一层。
+   ══════════════════════════════════════════════════════════════ */
+.adv-group{margin-bottom:10px}
+.adv-item{padding:12px 0;border-bottom:1px solid var(--line)}
+.adv-item:last-of-type{border-bottom:none}
+.adv-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.adv-label{font-size:14px;font-weight:600;color:var(--txt)}
+.adv-dirty .adv-label{color:var(--accent)}   /* 被改过的参数：名称高亮 */
+.adv-def{font-size:11.5px;color:var(--sub);flex:none;white-space:nowrap}
+.adv-ctl{display:flex;align-items:center;gap:10px;margin-top:8px}
+.adv-input{
+  flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);
+  border-radius:var(--radius-xs);padding:10px 12px;color:var(--txt);
+  font-size:14px;font-family:inherit;outline:none;
+  -webkit-user-select:text;user-select:text;transition:border-color .15s;
+}
+.adv-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,158,255,.12)}
+.adv-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-top:7px}
+
+/* ═══════════════ 蓝牙示波器（车机信号稳定性检查）══════════════ */
+/* 入口按钮：车机卡片标题右侧 */
+.sec-link{
+  font-size:12px;font-weight:600;color:var(--accent);
+  background:rgba(59,158,255,.12);border:1px solid rgba(59,158,255,.30);
+  border-radius:999px;padding:3px 10px;cursor:pointer;
+  flex:0 0 auto;margin-left:8px;white-space:nowrap;
+}
+.sec-link:active{transform:scale(.96);opacity:.8}
+
+/* 弹层主体：左对齐（sheet-card 默认居中） */
+.scope-card{text-align:left}
+
+/* 示波器画布容器 */
+.scope-chart{
+  margin:14px 0 2px;background:rgba(255,255,255,.02);
+  /* ★ 3.16.47（乐哥「底部是不是你又绘制了一层」）：容器边框删除 ——
+     canvas 内部现在自己画了「绘图区边框」（X/Y 轴范围），容器再套一圈就是双层框；
+     只留 canvas 内那一圈，范围感由坐标轴自己表达。 */
+  border:none;border-radius:14px;padding:8px;
+}
+#scopeCanvas{display:block;width:100%;height:150px}
+.scope-scale{
+  display:flex;justify-content:space-between;
+  font-size:10.5px;color:var(--sub);margin-top:4px;padding:0 2px;
+}
+
+/* 实时状态行：3.16.4 起统一由下方「蓝牙页三卡视觉升级」块定义（2×2 栅格），
+   此处旧版 2 列定义已删，避免与生效规则冲突。 */
+
+/* 弹层内的卡片：左对齐、收紧 */
+.scope-set{margin-top:12px;text-align:left}
+.scope-set .fold-body{text-align:left}
+
+/* 示波器图例（原 scope-scale 已删，刻度改由 canvas 绘制） */
+.scope-legend{
+  display:flex;gap:16px;flex-wrap:wrap;
+  font-size:11px;color:var(--sub);margin-top:8px;
+}
+.scope-legend .lg{display:inline-flex;align-items:center;gap:5px}
+.scope-legend .lg i{
+  display:inline-block;width:16px;height:0;
+  border-top:2px solid transparent;
+}
+.scope-legend .lg-raw i{border-top-color:rgba(120,170,255,.35)}
+.scope-legend .lg-sig i{border-top-color:rgba(59,158,255,.95)}
+.scope-legend .lg-enter i{border-top-color:rgba(63,208,127,.9)}
+.scope-legend .lg-exit i{border-top-style:dashed;border-top-color:rgba(255,180,84,.9)}
+
+
+/* ══════════════════════════════════════════════════════════════
+   ★★★ 3.15.95（乐哥）：蓝牙页三卡视觉升级
+   · 示波器卡 = 仪表屏风格（渐变屏 + 网格 + 悬浮数据块）
+   · 采样调整卡 = 参数清单（右对齐数值输入、聚焦发光）
+   · 控车设置卡 = 开关 / 多选 / 数值分区清晰
+   纯视觉改动：不触碰任何 DOM 结构与交互逻辑。
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 蓝牙页卡片：更厚的玻璃质感 + 顶部微渐变 ── */
+#page-ble > .card{
+  position:relative;overflow:hidden;
+  background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012) 42%, transparent 100%),
+             var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+/* 左上角一道极淡的高光，卡片不至于平得像纸 */
+#page-ble > .card::before{
+  content:"";position:absolute;top:0;right:0;bottom:0;left:0;pointer-events:none;
+  background:radial-gradient(560px 180px at 12% -40%, rgba(59,158,255,.10), transparent 70%);
+}
+
+/* ── ① 示波器：画布做成一块「仪表屏」── */
+/* ★★★ 3.16.49（乐哥「底部的那个网格还是没有去掉」+「分隔线不随拖动」）：
+   本条「仪表屏」样式里有 **repeating-linear-gradient 的 CSS 固定网格**（90deg 每 10%、
+   0deg 每 20% 一条线）——它画在容器背景上，**永不随拖动/缩放变化**，还会从 canvas
+   透明区（时间标签区）透出来，就是乐哥反复指的「底部网格」「不动的分隔线」。
+   网格现在**全部由 canvas 内 scopeDraw 绘制**（随拖动移动、随缩放换档），容器只留纯底色。 */
+.scope-chart{
+  margin:12px 0 0;
+  padding:6px;
+  border:none;
+  border-radius:var(--radius-xs);
+  background:rgba(255,255,255,.02);
+  box-shadow:none;
+}
+html[data-theme="light"] .scope-chart{
+  border:none;
+  background:rgba(255,255,255,.6);
+  box-shadow:none;
+}
+#scopeCanvas{
+  display:block;width:100%;height:174px;
+  border-radius:8px;
+  background:transparent;
+  /* ★ 3.15.104：竖向滑动仍交给页面滚动（pan-y）；横向拖动/捏合由 JS 手势接管，
+     拖动阈值时再靠 touchmove 拦一层，避免长按过程中被浏览器滚动判走导致断触。 */
+  touch-action:pan-y;
+  -webkit-user-select:none;user-select:none;
+}
+.scope-hint{
+  font-size:11px;line-height:1.5;color:var(--muted);
+  margin-top:8px;padding-left:2px;opacity:.85;
+}
+
+/* ★ 3.16.4（乐哥「界面对齐 / 字体可以缩放一点」）：
+   图例 6 项 + 状态 4 项在手机窄屏下自由折行 → 参差不齐。
+   改为固定栅格：图例 3 列 × 2 行、状态 2 列 × 2 行，逐格等宽对齐。 */
+/* ★★★ 3.16.94（乐哥 2026-10-24）：「示波器界面原始采样这几个文字提示 分了两行 不合理，
+   做成一行」—— 3.16.4 的 repeat(3,1fr) 让 4 项排成 3+1（第二行孤零零一个），
+   而且窄屏上「原始采样」四个字自己还会在格子里折成两行。
+   现在改 flex 等分 + nowrap：几项就均分几格，永远一行；括号里的色线固定 12px，
+   内边距/字号各收一档，360px 宽的屏上四格合计也放得下。 */
+.scope-legend{
+  display:flex;
+  gap:5px;margin-top:10px;
+  font-size:11px;color:var(--sub);
+}
+.scope-legend .lg{
+  flex:1 1 0;min-width:0;
+  padding:4px 5px;border-radius:999px;
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--line);
+  font-size:11px;letter-spacing:0;color:var(--muted);
+  justify-content:center;white-space:nowrap;
+}
+.scope-legend .lg i{flex:0 0 auto;width:12px}
+html[data-theme="light"] .scope-legend .lg{background:rgba(25,118,210,.05)}
+
+/* 实时状态：三格等宽（连接 / 信号 / 判定）；★ 3.16.12 删除「媒体」格 */
+.scope-live{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  margin:12px 0 2px;
+  background:var(--line);border-radius:var(--radius-xs);overflow:hidden;
+  border:1px solid var(--line);
+}
+.scope-live-item{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:11px 6px;background:var(--card);min-width:0;
+}
+.scope-live-k{font-size:12px;color:var(--sub);letter-spacing:.4px}
+/* ★ 3.20.99：连接状态那一格多一个说明角标，标签与角标同排（不撑高格子）。 */
+.scope-live-hd{display:flex;align-items:center;gap:2px}
+.scope-live-hd> .qmark{margin-left:2px}
+.scope-live-v{
+  font-size:16px;font-weight:700;line-height:1.15;text-align:center;
+  font-variant-numeric:tabular-nums;letter-spacing:.2px;
+}
+.scope-live-v.accent{color:var(--accent)}
+
+/* ── ②③ 采样参数 / 数值行：清单式两栏 ── */
+.tune-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 2px;
+  border-bottom:1px solid var(--line);
+}
+.tune-row:last-child{border-bottom:0}
+.tune-k{
+  font-size:13px;color:var(--muted);flex:1 1 auto;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tune-input{
+  flex:0 0 118px;width:118px;
+  padding:8px 10px;text-align:right;
+  font-family:inherit;font-size:14px;font-weight:600;
+  font-variant-numeric:tabular-nums;
+  color:var(--txt);
+  background:var(--card2);
+  border:1px solid var(--line);
+  border-radius:10px;
+  outline:none;
+  transition:border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.tune-input:focus{
+  border-color:var(--accent);
+  background:rgba(59,158,255,.08);
+  box-shadow:0 0 0 3px rgba(59,158,255,.18);
+}
+html[data-theme="light"] .tune-input:focus{background:rgba(25,118,210,.07)}
+
+/* ★★★ 3.16.22（乐哥）：「趋势解锁」的「趋势跨度」输入行。
+   只在开关打开时由 JS 显示（display:''），默认 display:none 由行内样式控制。
+   复用 .tune-input 的外观，只是收窄一点、右对齐，和上面的开关行保持同一节奏。 */
+#nearTrendWinRow{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 0 4px;
+}
+#nearTrendWinRow .tune-input{flex:0 0 96px;width:96px}
+
+/* ── ③ 控车设置：锁车动作多选做成可点的「选项片」── */
+.locksteps{gap:5px;margin:9px 0 4px}
+.lstep{
+  padding:6px 8px;gap:6px;
+  border:1px solid var(--line);border-radius:999px;
+  background:var(--card2);
+  font-size:12.5px;font-weight:500;color:var(--txt);
+  transition:border-color .16s ease, background .16s ease, color .16s ease;
+  user-select:none;
+}
+.lstep:active{transform:scale(.97)}
+.lstep input[type=checkbox]{accent-color:var(--accent)}
+.lstep.locked{
+  color:var(--sub);
+  background:transparent;border-style:dashed;
+}
+/* ★ 乐哥 2026-10-26：「这个二选一不要做成选择框，做成单选按钮」——
+   判据来源（蓝牙 / 云端）用 radio 圆点，外观沿用选项片，选中态由 JS 加 .on。 */
+.opt-row{display:flex;gap:7px;flex:1;min-width:0}
+.opt{
+  flex:1 1 0;min-width:0;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:9px 4px;border:1px solid var(--line);border-radius:999px;
+  background:var(--card2);font-size:12.5px;font-weight:500;color:var(--txt);
+  cursor:pointer;user-select:none;white-space:nowrap;
+  transition:border-color .16s ease, background .16s ease, color .16s ease;
+}
+.opt:active{transform:scale(.97)}
+.opt input[type=radio]{
+  width:16px;height:16px;flex:none;margin:0;cursor:pointer;
+  accent-color:var(--accent);
+}
+.opt.on{border-color:var(--accent);background:rgba(59,158,255,.14);color:var(--txt)}
+html[data-theme="light"] .opt.on{background:rgba(25,118,210,.10)}
+
+/* 开关行：更松的呼吸 + 选中时标题提亮 */
+.switch-row{padding:13px 2px;border-bottom:1px solid var(--line)}
+.switch-row:last-of-type{border-bottom:0}
+.switch-row .kv-k{font-size:14px}
+
+/* 折叠卡展开后标题把手与正文之间留一道淡分隔 */
+.card.foldable:not(.folded) > .fold-head{
+  border-bottom:1px solid var(--line);
+  border-radius:var(--radius) var(--radius) 0 0;
+}
+
+/* 卡片标题把手：微微加粗 + 缩进对齐 */
+#page-ble .sec-inline{
+  font-size:14.5px;font-weight:600;letter-spacing:.3px;color:var(--txt);
+}
+
+/* ── 3.15.98：采样调整两模块（信号 / 自动灵敏度）+ 每项一句说明 ── */
+.tune-sec{margin-top:14px}
+.tune-sec:first-child{margin-top:6px}
+.tune-sec-t{
+  font-size:12px;font-weight:700;letter-spacing:1px;color:var(--accent);
+  text-transform:none;margin:0 0 8px;padding-left:2px;
+}
+.tune-line{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.tune-tip{
+  margin-top:5px;font-size:11.5px;line-height:1.55;color:var(--sub);
+  padding-left:2px;
+}
+.tune-sec .tune-row{
+  display:block;padding:11px 2px;border-bottom:1px solid var(--line);
+}
+.tune-sec .tune-row:last-child{border-bottom:0}
+/* ★ 3.16.66：模式分组 —— 子标题（公用区里的「自动灵敏度」）+ 可隐藏的整块 */
+.tune-sec-t.tune-sub{
+  font-size:11.5px;font-weight:600;letter-spacing:.5px;color:var(--sub);
+  margin-top:16px;
+}
+.tune-sec[hidden]{display:none}
+.tune-tip.sec-tip{
+  margin:0 0 8px;padding:7px 10px;border-radius:9px;
+  background:rgba(59,158,255,.08);border:1px solid rgba(59,158,255,.16);
+  color:var(--muted);font-size:11.5px;
+}
+html[data-theme="light"] .tune-tip.sec-tip{background:rgba(25,118,210,.06)}
+
+/* ★ 3.16.90：控制日志筛选（蓝牙/云端分开看） */
+.seg-row { display: flex; gap: 6px; }
+.seg-btn {
+  flex: 1; padding: 7px 0; border-radius: 9px; border: 1px solid var(--line, #2a3245);
+  background: transparent; color: var(--muted, #8b95ad); font-size: 13px;
+}
+.seg-btn.on { background: var(--accent, #3b82f6); border-color: var(--accent, #3b82f6); color: #fff; }
+
+/* ★ 3.16.90：按钮音效选择面板 */
+.snd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.snd-item {
+  padding: 12px 4px; border-radius: 11px; border: 1px solid var(--line, #2a3245);
+  background: transparent; color: inherit; font-size: 14px;
+}
+.snd-item.on { border-color: var(--accent, #3b82f6); background: rgba(59,130,246,.15); }
+
+/* ═══════════════ 控车二次确认弹窗（防误触）═══════════════════════════
+   ★★★ 客户需求（2026-10-29）：「防误触确定键做成开关样式，弹窗界面做好看」。
+   设计口径：
+     · 遮罩用「径向渐变 + 毛玻璃」，比纯黑半透明更有层次，背后的车况卡片仍有质感虚化；
+     · 卡片顶面亮、底面暗（165deg 线性渐变），配内外两层高光描边 = 浮起来的实体感；
+     · 图标做成 64px 光环（径向渐变 + inset 描边 + 外发光），危险动作整卡换红；
+     · 按钮 48px 高、15.5px 半粗、按压 scale(.97)，主按钮带同色投影。
+   ⚠ 全部走 styles.css 已有的 CSS 变量（--txt/--muted/--sub），浅色主题自动跟随；
+     危险色单独写死两套（深色亮红 / 浅色深红），因为 --danger 在浅色下偏暗、放按钮上发闷。 */
+.cfm{
+  position:fixed;top:0;right:0;bottom:0;left:0;z-index:120;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.cfm[hidden]{display:none}
+.cfm-mask{
+  position:absolute;top:0;right:0;bottom:0;left:0;
+  background:radial-gradient(circle at 50% 38%, rgba(8,14,26,.66), rgba(3,6,12,.92));
+  backdrop-filter:blur(14px) saturate(120%);
+  -webkit-backdrop-filter:blur(14px) saturate(120%);
+  animation:cfmFade .16s ease-out;
+}
+@keyframes cfmFade{from{opacity:0}to{opacity:1}}
+.cfm-card{
+  position:relative;width:100%;max-width:332px;padding:26px 22px 16px;
+  border-radius:26px;text-align:center;
+  background:linear-gradient(165deg, rgba(32,45,70,.97), rgba(13,19,32,.99));
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 28px 64px -14px rgba(0,0,0,.8),
+             0 1px 0 rgba(255,255,255,.09) inset,
+             0 0 0 1px rgba(255,255,255,.03) inset;
+  animation:cfmPop .26s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes cfmPop{from{opacity:0;transform:translateY(16px) scale(.95)}to{opacity:1;transform:none}}
+html[data-theme="light"] .cfm-card{
+  background:linear-gradient(165deg,#FFFFFF,#F1F5FB);
+  border-color:rgba(16,32,56,.10);
+  box-shadow:0 28px 60px -16px rgba(18,32,56,.42),
+             0 1px 0 rgba(255,255,255,.95) inset;
+}
+.cfm-ico{
+  width:64px;height:64px;margin:2px auto 15px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:29px;line-height:1;
+  background:radial-gradient(circle at 50% 28%, rgba(59,158,255,.32), rgba(59,158,255,.05));
+  box-shadow:0 0 0 1px rgba(59,158,255,.38) inset, 0 10px 26px -10px rgba(59,158,255,.75);
+}
+.cfm-title{font-size:18.5px;font-weight:700;letter-spacing:.4px;color:var(--txt);line-height:1.35}
+.cfm-sub{font-size:13px;color:var(--muted);margin-top:9px;line-height:1.65;min-height:20px}
+.cfm-acts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.cfm-btn{
+  height:48px;border:none;border-radius:15px;font-size:15.5px;font-weight:600;
+  letter-spacing:.4px;cursor:pointer;transition:transform .12s ease, filter .12s ease;
+  font-family:inherit;
+}
+.cfm-btn:active{transform:scale(.97)}
+.cfm-btn.ghost{
+  background:rgba(255,255,255,.07);color:var(--txt);
+  box-shadow:0 0 0 1px rgba(255,255,255,.11) inset;
+}
+html[data-theme="light"] .cfm-btn.ghost{
+  background:rgba(16,32,56,.05);box-shadow:0 0 0 1px rgba(16,32,56,.10) inset;
+}
+.cfm-btn.go{
+  color:#fff;
+  background:linear-gradient(180deg,#4AA5FF,#1F6FD2);
+  box-shadow:0 12px 24px -12px rgba(59,158,255,.95), 0 1px 0 rgba(255,255,255,.25) inset;
+}
+.cfm-tip{font-size:11px;color:var(--sub);margin-top:13px;line-height:1.5}
+
+/* 危险动作：整卡转红（熄火 / 开后备箱 / 升窗 / 启动） */
+.cfm.danger .cfm-ico{
+  background:radial-gradient(circle at 50% 28%, rgba(255,107,107,.34), rgba(255,107,107,.06));
+  box-shadow:0 0 0 1px rgba(255,107,107,.42) inset, 0 10px 26px -10px rgba(255,80,80,.8);
+}
+.cfm.danger .cfm-btn.go{
+  background:linear-gradient(180deg,#FF7C6D,#DC3A2B);
+  box-shadow:0 12px 24px -12px rgba(226,58,43,.95), 0 1px 0 rgba(255,255,255,.22) inset;
+}
+.cfm.danger .cfm-title{color:#FF9086}
+html[data-theme="light"] .cfm.danger .cfm-title{color:#C0332A}
+
+/* ═══════════════ 首页报警警示条（客户需求 · 2026-10-29）═══════════════
+   位置：顶栏与内容之间，属于 .app 的 flex 子元素 ⇒ 不随内容滚动、切页依然常驻。
+   视觉：暖红渐变底 + 左侧感叹号光点，跟危险色同一族但更柔和（它是"提醒"，不是"爆炸"）。 */
+.alarm-bar{
+  display:flex;align-items:center;gap:11px;
+  margin:8px 14px 0;padding:11px 13px;border-radius:15px;
+  background:linear-gradient(120deg, rgba(255,92,80,.16), rgba(255,61,43,.09));
+  border:1px solid rgba(255,92,80,.34);
+  box-shadow:0 8px 22px -14px rgba(255,61,43,.85), 0 0 0 1px rgba(255,255,255,.02) inset;
+  animation:abIn .24s cubic-bezier(.34,1.36,.64,1);
+}
+.alarm-bar[hidden]{display:none}
+@keyframes abIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.alarm-bar .ab-ico{
+  flex:0 0 30px;width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  background:rgba(255,92,80,.20);box-shadow:0 0 0 1px rgba(255,92,80,.42) inset;
+  animation:abPulse 1.8s ease-in-out infinite;
+}
+@keyframes abPulse{0%,100%{box-shadow:0 0 0 1px rgba(255,92,80,.42) inset}
+  50%{box-shadow:0 0 0 1px rgba(255,92,80,.42) inset,0 0 12px 1px rgba(255,92,80,.42)}}
+.alarm-bar .ab-body{flex:1;min-width:0}
+.alarm-bar .ab-title{font-size:13.5px;font-weight:600;color:var(--txt);line-height:1.35}
+.alarm-bar .ab-detail{
+  font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45;
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+.alarm-bar .ab-ack{
+  flex:0 0 auto;height:30px;padding:0 12px;border-radius:10px;border:none;
+  background:rgba(255,92,80,.20);color:#FF8E82;font-size:12.5px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:transform .12s;
+}
+.alarm-bar .ab-ack:active{transform:scale(.95)}
+html[data-theme="light"] .alarm-bar{
+  background:linear-gradient(120deg, rgba(211,47,47,.10), rgba(211,47,47,.05));
+  border-color:rgba(211,47,47,.28);
+}
+html[data-theme="light"] .alarm-bar .ab-ack{background:rgba(211,47,47,.12);color:#B3312A}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★★★ 客户需求（2026-10-29，乐哥）：「把防误触开关加到这里（车辆控制标题行右侧），
+        默认关闭，别放在设置里面。」
+
+   · 位置：紧贴「车辆控制」后面那枚「云端/蓝牙」通道标签的右边，`margin-left:auto` 顶到行尾；
+   · 尺寸：36×21 迷你开关 —— 标题行高度每多 1px 都会把下面 5×2 的按钮往下推，
+     所以它必须比设置页那枚 54×30 小一号。点击热区用伪元素撑到 44px 高（拇指好点）；
+   · 默认关（不留 `.on` 类）：点亮 = 青色 = "会弹确认"，灰 = "点了直接执行"。
+   ⚠ 只给 `.sec-title.has-sw` 开 flex，别改全局 `.sec-title` ——
+     别处的标题行（含通道标签）是靠 inline 排列的，改成 flex 会整体错位。
+   ═══════════════════════════════════════════════════════════════════════════ */
+.sec-title.has-sw{
+  display:flex;align-items:center;gap:8px;
+}
+.sec-title.has-sw .sw-mini{margin-left:auto}
+.sw-mini{
+  width:36px;height:21px;border-radius:12px;flex:none;position:relative;
+  background:var(--card2);border:1px solid var(--line);cursor:pointer;
+  transition:background .22s cubic-bezier(.4,0,.2,1),border-color .22s cubic-bezier(.4,0,.2,1);
+  -webkit-tap-highlight-color:transparent;
+}
+/* 热区外扩：视觉 36×21，实际可点 48×40 */
+.sw-mini::after{
+  content:'';position:absolute;left:-6px;right:-6px;top:-10px;bottom:-10px;
+}
+.sw-mini i{
+  position:absolute;top:1.5px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:var(--sub);display:block;
+  transition:left .22s cubic-bezier(.4,0,.2,1),background .22s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 1px 3px rgba(0,0,0,.28);
+}
+.sw-mini.on{background:var(--ok-bg);border-color:var(--ok-line)}
+.sw-mini.on i{left:16px;background:var(--ok);box-shadow:0 1px 6px rgba(0,230,118,.45)}
+/* 浅色主题：轨道要更实一点，否则米白卡片上看不出开关边界 */
+html[data-theme="light"] .sw-mini{background:#e9edf2;border-color:#d3dae3}
+html[data-theme="light"] .sw-mini i{background:#fff;box-shadow:0 1px 3px rgba(20,30,45,.25)}
+html[data-theme="light"] .sw-mini.on{background:var(--ok-bg);border-color:var(--ok-line)}
+html[data-theme="light"] .sw-mini.on i{background:var(--ok)}
+
+/* ═══════════ 自定义输入框的「重置」小按钮（3.20.59）═══════════
+   乐哥：「每个自定义输入框旁边 重置按钮呢」——
+   按钮由 app.js 的 initResetBtns() 动态插到每个输入框容器末尾，
+   所以这里只管长相，不用改 index.html 的 12 处结构（少改 = 少出错）。
+   ⚠ flex:none：.fld input 是 flex:1，按钮绝不能跟着伸缩，否则会被压成一条缝。 */
+.rst{
+  flex:none;padding:0 9px;height:30px;
+  border:1px solid var(--line);border-radius:10px;background:transparent;
+  color:var(--muted);font-size:12px;font-family:inherit;line-height:1;
+  cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;
+}
+.rst:active{background:var(--card2);color:var(--accent);border-color:var(--accent)}
+/* 数字参数行（.kv）里的输入框本来固定 118px，给按钮让 10px 出来，行不会被撑破 */
+.kv .tune-input{flex:0 1 118px;width:auto;min-width:70px}
+/* 趋势跨度这一行是 id 选择器定的死宽（96px），加了重置按钮后要允许收缩，否则挤爆标签 */
+#nearTrendWinRow .tune-input{flex:0 1 96px;width:auto;min-width:64px}
+
+/* ═══════════ 参数行（.tune-row 动态重建）的「重置」按钮（3.20.60）═══════════
+   这些行每次轮询都 innerHTML 重建，按钮写死在模板里（见 scopeRenderParams.render）。
+   .tune-input 原来是死宽 118px，加按钮后整行会挤爆：收成可伸缩、给按钮让位。 */
+.tune-line .tune-input{flex:0 1 100px;width:auto;min-width:66px}
+.tune-rst{height:28px;padding:0 8px;border-radius:9px;font-size:11.5px;flex:none}
+
+/* ═══════════════ 3.20.61 后台扫描抑制（蓝牙页，和媒体蓝牙抑制同卡）═══════════════
+   乐哥：「WiFi 定时停扫 这个和蓝牙抑制放到一起；wifi 用选择连接过的 wifi，
+   定时用时间选择器；注意弹窗和 ui 保持主题一致 好看」。
+   全部吃 CSS 变量，深浅色自动跟随，不写死任何颜色。 */
+.bgstop{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.bgstop-t{font-size:12px;font-weight:700;letter-spacing:1px;color:var(--accent);margin:0 0 4px;padding-left:2px}
+.bgstop .kv{padding:8px 0 4px;align-items:center}
+.bgstop-v{font-size:12px;color:var(--muted);line-height:1.5;padding:0 0 10px 2px;word-break:break-all}
+.btn-mini{
+  flex:none;height:30px;padding:0 12px;border-radius:9px;
+  border:1px solid var(--line);background:var(--card2);color:var(--txt);
+  font-size:12.5px;font-family:inherit;line-height:1;
+  cursor:pointer;transition:border-color .15s,color .15s,background .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn-mini:active{border-color:var(--accent);color:var(--accent)}
+
+/* ── WiFi 多选列表 ── */
+.wlist{
+  max-height:46vh;overflow-y:auto;margin:2px 0 10px;
+  border:1px solid var(--line);border-radius:12px;background:var(--card2);
+}
+.wlist:empty{display:none}
+.wrow{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--line);cursor:pointer}
+.wrow:last-child{border-bottom:0}
+.wrow:active{background:var(--bg2)}
+.wdot{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none;position:relative;transition:all .15s}
+.wrow.on .wdot{border-color:var(--accent);background:var(--accent)}
+.wrow.on .wdot::after{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--card)}
+.wname{flex:1;min-width:0;font-size:14px;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wtag{flex:none;font-size:11px;color:var(--muted);padding:2px 6px;border-radius:6px;background:var(--bg2)}
+.wrow.on .wtag{color:var(--accent)}
+.wempty{padding:16px 12px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.wmanual{
+  width:100%;box-sizing:border-box;margin:0 0 12px;padding:11px 12px;
+  border:1px solid var(--line);border-radius:11px;background:var(--card2);
+  color:var(--txt);font-size:14px;font-family:inherit;outline:none;
+}
+.wmanual:focus{border-color:var(--accent)}
+
+/* ── 时间滚轮（自绘，不用系统 TimePicker，主题才一致）── */
+.tseg{display:flex;align-items:center;gap:10px;margin:4px 0 10px}
+.tseg-b{
+  flex:1;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--card2);
+  color:var(--txt);font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;
+  font-family:inherit;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;
+}
+.tseg-b.on{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 3px rgba(59,158,255,.15)}
+.tseg-ar{flex:none;color:var(--muted);font-size:16px}
+.tpick{
+  position:relative;display:flex;justify-content:center;align-items:center;height:170px;
+  overflow:hidden;border-radius:14px;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 74%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 74%,transparent 100%);
+}
+.tpick-band{
+  position:absolute;left:12%;right:12%;top:calc(50% - 17px);height:34px;border-radius:10px;
+  background:var(--card2);border:1px solid var(--line);pointer-events:none;
+}
+.tpick-col{
+  position:relative;height:100%;width:82px;overflow-y:scroll;
+  scroll-snap-type:y mandatory;scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+/* ⚠ 首尾留白必须用**伪元素**、不能用 padding：
+   padding 会让滚动容器自身高度变成 170+136=306，clientHeight 虚高 ⇒
+   最后几项永远滚不到中间（试过的写法）。伪元素参与 scrollHeight 但不影响 clientHeight。 */
+.tpick-col::before,.tpick-col::after{content:'';display:block;height:68px}
+.tpick-col::-webkit-scrollbar{display:none;width:0;height:0}
+.tpick-it{
+  height:34px;line-height:34px;text-align:center;
+  font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;
+  color:var(--muted);scroll-snap-align:center;transition:color .12s;
+}
+.tpick-it.sel{color:var(--txt);font-weight:800}
+.tpick-colon{flex:none;font-size:19px;font-weight:700;color:var(--muted);padding:0 2px}
+
+/* 这两个弹层是三个按钮（取消/清空/保存），.sheet-actions 默认两列会挤成 2+1 */
+.sheet-actions.three{grid-template-columns:1fr 1fr 1fr}
+/* .sheet-card 是 text-align:center，列表里的名字/说明要压回左对齐 */
+.wname,.wempty{text-align:left}
+
+/* ══ ★ 3.20.64：桌面图标选择（三套内置，点一下换） ═══════════════════ */
+/* ★ 3.20.67：图标从 3 项变 4 项（多了「自定义图片」）—— 3 列会排成 3+1（最后一项孤零零一行），
+   改成 2 列 = 整齐的 2×2，缩略图还能大一点。 */
+.icogrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+.icoitem{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:12px 6px 10px;border:1px solid var(--line);border-radius:16px;
+  background:var(--card2);cursor:pointer;
+  transition:border-color .15s,transform .1s,box-shadow .15s;
+}
+.icoitem img{width:58px;height:58px;border-radius:16px;display:block}
+.icoitem b{font-size:12px;font-weight:600;color:var(--txt)}
+.icoitem small{font-size:10px;line-height:1.3;color:var(--muted);text-align:center}
+.icoitem.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.icoitem.on b{color:var(--accent)}
+.icoitem:active{transform:scale(.97)}
+
+/* ★ 3.20.65：缩略图取不到时的占位（色块 + 名字首字），绝不留裂图 */
+.icoitem .icoph{
+  width:58px;height:58px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:700;color:var(--txt);
+  background:linear-gradient(135deg,rgba(127,127,127,.26),rgba(127,127,127,.10));
+  border:1px solid var(--line);
+}
+
+/* ★ 3.20.66：手机本地备份（Download/qinl-car-conf.json）*/
+.confbak{margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card2)}
+.confbak-t{font-size:13px;font-weight:600;color:var(--txt)}
+.confbak-p{font-size:11px;color:var(--muted);margin-top:5px;letter-spacing:.2px}
+.confbak-s{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.55}
+
+/* ═══ 3.20.68：WiFi 与定时 多场景设置页（page-bgstop）═══ */
+.bgp-head{display:flex;align-items:center;gap:10px;margin:2px 0 10px}
+.bgp-back{
+  padding:7px 13px;border:1px solid var(--line);border-radius:12px;
+  background:var(--card2);color:var(--txt);font-size:13px;font-weight:600;
+  font-family:inherit;cursor:pointer;
+}
+.bgp-back:active{transform:scale(.96)}
+.bgp-title{font-size:16px;font-weight:700;color:var(--txt)}
+
+.scenelist{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+.scene{
+  border:1px solid var(--line);border-radius:14px;background:var(--card2);
+  padding:11px 12px;
+}
+.scene.off{opacity:.55}
+.scene-h{display:flex;align-items:center;gap:9px}
+.scene-nm{
+  flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--txt);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.scene-nm.empty{color:var(--sub);font-weight:500}
+.scene-tg{
+  padding:5px 10px;border:1px solid var(--line);border-radius:10px;
+  background:transparent;color:var(--accent);font-size:12px;font-weight:600;
+  font-family:inherit;cursor:pointer;flex:none;
+}
+.scene-tg:active{transform:scale(.95)}
+.scene-del{
+  width:28px;height:28px;flex:none;border:0;border-radius:9px;
+  background:var(--danger-bg);color:var(--danger);font-size:17px;line-height:1;
+  font-family:inherit;cursor:pointer;
+}
+.scene-del:active{transform:scale(.92)}
+.scene-m{
+  display:flex;align-items:center;gap:8px;margin-top:9px;
+  padding-top:9px;border-top:1px dashed var(--line);
+}
+.scene-k{font-size:12px;color:var(--muted);flex:none}
+.scene-thr{
+  width:74px;text-align:center;padding:6px 8px;font-size:13px;font-weight:700;
+  border:1px solid var(--line);border-radius:10px;
+  background:var(--bg3);color:var(--txt);font-family:inherit;
+}
+.scene-u{font-size:11px;color:var(--sub)}
+.scene-cur{margin-left:auto;font-size:11px;color:var(--ok);font-weight:600}
+.scene-cur.weak{color:var(--warn)}
+.scene-time{
+  flex:1;font-size:15px;font-weight:700;color:var(--txt);letter-spacing:.3px;
+}
+.scene-time.empty{color:var(--sub);font-weight:500;font-size:13px}
+.scene-night{font-size:11px;color:var(--muted);font-weight:500}
+
+/* ★ 3.20.68：场景行里的小开关（54×30 那套放不下「名字+按钮」一行）*/
+.scene-sw{
+  width:38px;height:22px;border-radius:12px;flex:none;position:relative;
+  background:var(--card2);border:1px solid var(--line);cursor:pointer;
+  transition:background .2s,border-color .2s;
+}
+.scene-sw i{
+  position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:var(--sub);display:block;transition:left .2s,background .2s;
+}
+.scene-sw.on{background:var(--ok-bg);border-color:var(--ok-line)}
+.scene-sw.on i{left:18px;background:var(--ok)}
+
+/* ═══ 3.20.68：一键复制（抖音号这类带下划线的 ID，用户照着屏幕手打必错）═══ */
+.kv-cp{cursor:pointer}
+.kv-cp:active{background:var(--card2)}
+.cp-tag{
+  margin-left:7px;padding:2px 7px;border-radius:8px;
+  background:var(--bg3);color:var(--accent);
+  font-size:10px;font-style:normal;font-weight:600;letter-spacing:0;
+  vertical-align:middle;white-space:nowrap;
+}
+.cp-inline{cursor:pointer;border-bottom:1px dashed currentColor}
+.cp-inline:active{opacity:.6}
+
+/* ═══ 3.20.68：抖音名片弹层（点抖音号 = 复制 + 弹这张美化图）═══
+   图本身是 750×1120（比例 0.669）；弹层卡片按 78vw 收窄，手机上高度约 1.34 倍宽，
+   再加两颗按钮 —— 1080p 车机/手机都放得下，不需要滚动。 */
+.dy-card{max-width:330px;padding:18px 18px 16px}
+.dy-pic{
+  display:block;width:100%;height:auto;border-radius:18px;
+  box-shadow:0 10px 30px rgba(0,0,0,.34);
+  background:#4B25C9;          /* 图加载前不留白闪 */
+}
+.dy-card .sheet-actions{margin-top:14px}
+.dy-card .hint{font-size:11.5px;line-height:1.5;min-height:0}
+
+/* ═══ 3.20.82：链路三态（已直连 / 待命 / 未连接）═══
+   环与曲线的判定源换成 ATT 层真证据后，界面必须能表达「登记着、还没连上」这一档；
+   把 standby 和 down 都画成灰，等于把「其实蓝牙在」又藏回去了。
+   颜色口径：绿=已直连，琥珀=待命，灰=未连接（沿用现有 done 绿）。 */
+#btnBleConn.standby{
+  background:rgba(255,180,84,.14);
+  border-color:rgba(255,180,84,.55);
+  color:#ffb454;
+}
+#btnBleConn.standby::before{content:"◌ ";font-weight:700}
+.scope-live-v.link-live{color:#37d07f}
+.scope-live-v.link-standby{color:#ffb454}
+/* 待命时控制卡片角标弱化但不点亮：告诉用户「蓝牙在，还没认证完」。 */
+body.ble-standby .ble-badge{opacity:.45;transform:scale(.92)}
+
+/* ══════════════════════════════════════════════════════════════════════
+   3.20.99 · 蓝牙页横向标签 / 说明角标 / 按钮横排 / 行程行省略
+   （乐哥 2026-11-04）
+
+   ⚠⚠ 这个文件（styles.css）才是 index.html **唯一** <link> 的样式表。
+      guofeng.css / guofeng-319.css / hmi-v2.css 都是历史遗留、根本没被引用 ——
+      3.20.94~3.20.98 的样式写错文件，界面上一律没生效，这就是"越改越乱"的真因。
+      以后所有新样式一律写在这里。
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── ① 蓝牙页：示波器常驻，下面一排功能标签（视觉对齐 App 现有 .seg-btn 分段控件） ── */
+.ble-tabs{display:flex;gap:6px;margin:0 0 12px}
+.ble-tab{
+  flex:1;padding:9px 0;border-radius:10px;
+  border:1px solid var(--line);background:transparent;
+  color:var(--muted);font-size:13px;letter-spacing:.02em;
+  -webkit-tap-highlight-color:transparent;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.ble-tab.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+
+/* ── ② 说明角标（**只作用于蓝牙页**，其它页面一律不动）──
+   说明文字收起，角标直接挂在所属那一行的标签后面（行内，不另起一行），
+   点它弹出浮层写完整解释。浮层 position:fixed + 单独节点 ⇒ 绝不参与文档流，
+   不可能挤动或撑开任何已有排版。 */
+.qmark{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:14px;height:14px;border-radius:50%;flex:none;
+  border:1px solid var(--line);background:transparent;color:var(--sub);
+  font-size:9px;line-height:1;font-weight:700;font-family:inherit;
+  margin-left:5px;cursor:pointer;user-select:none;vertical-align:middle;
+  -webkit-tap-highlight-color:transparent;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.qmark.on{background:rgba(59,158,255,.22);border-color:rgba(59,158,255,.55);color:var(--accent)}
+/* 紧跟标题文字时把间距收一点，别把标题和开关之间撑开 */
+.kv-k+ .qmark,.sec-inline> .qmark,.tune-k+ .qmark{margin-left:4px}
+/* 参数行行尾（重置按钮之后）的角标：吃掉一半 gap，别把输入框挤窄 */
+.tune-line> .qmark{margin-left:-6px}
+
+/* 浮层：点角标才出现，显示在该角标正下方（下面放不下就翻到上方） */
+.qtip{
+  position:fixed;z-index:9999;display:none;max-width:min(78vw,340px);
+  padding:10px 12px;border-radius:12px;
+  background:var(--card);border:1px solid rgba(59,158,255,.38);
+  color:var(--txt);font-size:12.5px;line-height:1.65;letter-spacing:.01em;
+  white-space:pre-line;
+  box-shadow:0 12px 32px rgba(0,0,0,.55);
+}
+.qtip.on{display:block}
+
+/* 参数行（.tune-row）的说明一律收起，文字只进浮层 */
+.tune-tip.qmarkable{display:none}
+
+/* ── ③ 按钮横排：同一容器里的动作按钮并排，不再竖着一列一个 ── */
+.ble-actions{flex-direction:row;flex-wrap:wrap;gap:8px}
+.ble-actions .btn{flex:1 1 40%;min-width:118px;white-space:nowrap}
+
+/* ── ④ 行程记录：一行放得下（时间侧超长省略，公里数侧不换行） ── */
+.trip-item .tm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.trip-item .mi{flex:none;margin-left:8px;white-space:nowrap}
+
+/* ══════════════════════════════════════════════════════════════
+   ★★★ 终极完美版：全局滑块过渡 + 按需拖拽 + 沉浸顶栏
+   ══════════════════════════════════════════════════════════════ */
+
+/* 1. 基础适配与版本号隐藏 */
+#appVer { display: none !important; }
+
+/* ── 核心：将顶栏脱离文档流悬浮，以便下方内容滑动穿透到其背后 ── */
+.topbar {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 100 !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  /* ★ 修复：加大顶部安全区兜底，防止与状态栏重叠 */
+  padding: max(52px, calc(env(safe-area-inset-top, 0px) + 44px)) 18px 12px !important; 
+  pointer-events: none; 
+}
+.topbar > * {
+  pointer-events: auto;
+}
+
+/* ── 内容区增加顶部留白，防止初始加载时被顶栏盖住，并拉开间距 ── */
+.content { 
+  /* 顶栏真实高度约为 max(...) + 44px，这里再加 70px 留出充足呼吸空间 */
+  padding-top: calc(max(52px, calc(env(safe-area-inset-top, 0px) + 44px)) + 70px) !important; 
+  padding-bottom: 120px !important; 
+  touch-action: pan-y !important; 
+}
+
+/* ── 兼容报警条：若有报警提示，推至顶栏下方，避免被遮挡 ── */
+.alarm-bar:not([hidden]) {
+  margin-top: calc(max(52px, calc(env(safe-area-inset-top, 0px) + 44px)) + 10px) !important;
+  position: relative;
+  z-index: 90;
+}
+.alarm-bar:not([hidden]) ~ .content {
+  /* 报警条占据高度后，主内容区不再需要额外大留白 */
+  padding-top: 12px !important;
+}
+
+/* ── 顶栏无缝渐变毛玻璃背景 ── */
+.topbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: -60px; /* 向下延伸，覆盖内容穿透的区域 */
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  
+  /* 强模糊与饱和度 */
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  
+  /* 半透明底色，强化毛玻璃视觉，逐渐向下透明 */
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 100%);
+  
+  /* 遮罩：上面 0% 完全保留模糊，往下逐渐融化为透明，达到“上模糊下清晰”且无分界线 */
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0%, black 0%, transparent 100%);
+  
+  transition: opacity 0.3s ease;
+}
+
+/* 深色模式下的底色 */
+html[data-theme="dark"] .topbar::before {
+  background: linear-gradient(to bottom, rgba(13, 19, 32, 0.85) 0%, rgba(13, 19, 32, 0) 100%);
+}
+
+/* 滚动时触发显示 */
+.topbar.scrolled::before {
+  opacity: 1;
+}
+
+/* ── 车型名字长文本防撑破兜底 ── */
+.hero-name {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 2. 极致液态玻璃底栏容器 */
+.navbar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  left: 16px;
+  right: 16px;
+  border-radius: 999px;
+  padding: 3px 4px;
+  z-index: 80;
+  pointer-events: none;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  overflow: visible !important;
+  transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.2s ease !important;
+  
+  --nav-index: 0;
+  --drag-offset: 0px;
+  --drag-offset-y: 0px;
+}
+
+/* 【全局】只要摸到底栏就整体放大 */
+.navbar.navbar-pressed {
+  transform: scale(1.03) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 3. SVG 液态玻璃滤镜 */
+.navbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  border-radius: 999px;
+  overflow: hidden;
+  backdrop-filter: blur(8px) saturate(180%);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  filter: url(#glass-distortion);
+  background: rgba(255, 255, 255, 0.15);
+  isolation: isolate;
+}
+html[data-theme="dark"] .navbar::before { background: rgba(20, 25, 35, 0.35); }
+html[data-theme="dark"] .navbar { border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
+
+/* 👇 4. 全局滑动选择器（默认态） */
+.navbar::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 4px;
+  width: calc((100% - 8px) / 4); 
+  border-radius: 999px;
+  
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1);
+  z-index: -1;
+  
+  transform: translateX(calc(var(--nav-index) * 100% + var(--drag-offset, 0px))) translateY(var(--drag-offset-y, 0px)) scale(1);
+  
+  transition: transform 0.4s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.4s ease !important;
+  will-change: transform;
+}
+
+/* 【局部】按住当前选择器时，背景放大 1.35 倍 */
+.navbar.slider-pressed::after {
+  transform: translateX(calc(var(--nav-index) * 100% + var(--drag-offset, 0px))) translateY(var(--drag-offset-y, 0px)) scale(1.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 深色模式下的滑块样式（原样保留） */
+html[data-theme="dark"] .navbar::after {
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+/* ★ 浅色主题：通透玻璃滑块 */
+html[data-theme="light"] .navbar::after {
+  background: rgba(0, 0, 0, 0.03);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6),
+              0 1px 4px rgba(0, 0, 0, 0.02);
+}
+
+/* 5. 按钮基础样式 */
+.nav-item {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: var(--sub);
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: 11.5px;
+  min-height: 52px;
+  justify-content: center;
+  position: relative;
+  pointer-events: auto; 
+  touch-action: none; 
+  border-radius: 999px; 
+  z-index: 1; 
+}
+
+.nav-item.active { color: var(--accent) !important; }
+
+/* 图标和文字层级 */
+.nav-item svg, .nav-item span {
+  position: relative;
+  z-index: 11; 
+  transition: transform 0.4s cubic-bezier(0.34, 1.2, 0.64, 1) !important;
+}
+.nav-item svg { width: 24px; height: 24px; }
+
+/* ★ 选择器被按住时，内部图标文字同步放大到 1.3 倍 */
+.navbar.slider-pressed .nav-item.active svg,
+.navbar.slider-pressed .nav-item.active span {
+  transform: scale(1.3) !important; 
+}
+
+/* ★ 隐藏原版留在按钮顶部的那个小蓝条（因为它和新的液态滑块冲突了） */
+.nav-item.active::before {
+  display: none !important;
+  content: none !important;
+}

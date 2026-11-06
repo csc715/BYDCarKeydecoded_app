@@ -1,0 +1,1614 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   青简 · 车载器物志  UI 体系
+   ──────────────────────────────────────────────────────────────────────────
+   两套独立主题：
+     · 素笺青徽（亮）— 宣纸水墨：米纸底、青绿徽色、朱印点睛、纸纤维与墨晕
+     · 玄烬朱纹（暗）— 玄石碑刻：墨石底、朱砂纹章、暗金线、岩纹与铜锈
+
+   要点：
+     1. 两套不是明暗翻转 —— 主色（青绿 / 朱砂）、纹理源（纸纤维 / 岩石）、
+        图标滤镜（毛笔抖动 / 石刻凹痕）、动效曲线（墨晕外扩 / 微光内聚）全部不同。
+     2. 纹理由 SVG feTurbulence 程序化生成，天然无缝、非平铺循环。
+     3. 不用任何 Material / MD3 原生控件，全部重新绘制。
+     4. 只用 CSS 与少量静态资源，不改 DOM 结构、不改任何业务逻辑。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 0. 纹理资源（feTurbulence 程序化噪声，见 _gen_tex.py） ── */
+:root{
+  --tex-paper:url("data:image/svg+xml;charset=utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='900'%20height='900'%3E%3Cfilter%20id='a'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.9'%20numOctaves='4'%20seed='17'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20type='matrix'%20values='0%200%200%200%200.55%200%200%200%200%200.48%200%200%200%200%200.36%200%200%200%200.30%200'/%3E%3C/filter%3E%3Cfilter%20id='b'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.012'%20numOctaves='3'%20seed='41'/%3E%3CfeColorMatrix%20type='matrix'%20values='0%200%200%200%200.42%200%200%200%200%200.35%200%200%200%200%200.24%200%200%200%200.16%200'/%3E%3C/filter%3E%3Crect%20width='900'%20height='900'%20filter='url(%23a)'/%3E%3Crect%20width='900'%20height='900'%20filter='url(%23b)'/%3E%3C/svg%3E");
+  --tex-fiber:url("data:image/svg+xml;charset=utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='600'%3E%3Cfilter%20id='f'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.006%200.9'%20numOctaves='3'%20seed='9'/%3E%3CfeColorMatrix%20type='matrix'%20values='0%200%200%200%200.46%200%200%200%200%200.39%200%200%200%200%200.28%200%200%200%200.20%200'/%3E%3C/filter%3E%3Crect%20width='600'%20height='600'%20filter='url(%23f)'/%3E%3C/svg%3E");
+  --tex-rock:url("data:image/svg+xml;charset=utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='800'%20height='800'%3E%3Cfilter%20id='r'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='turbulence'%20baseFrequency='0.028'%20numOctaves='5'%20seed='23'/%3E%3CfeColorMatrix%20type='matrix'%20values='0%200%200%200%200.62%200%200%200%200%200.58%200%200%200%200%200.50%200%200%200%200.11%200'/%3E%3C/filter%3E%3Cfilter%20id='c'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='turbulence'%20baseFrequency='0.42'%20numOctaves='2'%20seed='71'/%3E%3CfeColorMatrix%20type='matrix'%20values='0%200%200%200%200.0%200%200%200%200%200.0%200%200%200%200%200.0%200%200%200%200.10%200'/%3E%3C/filter%3E%3Crect%20width='800'%20height='800'%20filter='url(%23r)'/%3E%3Crect%20width='800'%20height='800'%20filter='url(%23c)'/%3E%3C/svg%3E");
+  --tex-patina:url("data:image/svg+xml;charset=utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='700'%20height='700'%3E%3Cfilter%20id='p'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.035'%20numOctaves='4'%20seed='55'/%3E%3CfeColorMatrix%20type='matrix'%20values='0%200%200%200%200.20%200%200%200%200%200.44%200%200%200%200%200.36%200%200%200%200.14%200'/%3E%3C/filter%3E%3Crect%20width='700'%20height='700'%20filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
+/* ── 字号阶梯（3.18.2）：随屏幕宽度流体缩放，车机 1024~1920 宽都合眼。
+      古风排版忌讳「密」——正文偏松、题字偏大、数字最大，形成三级节奏。 ── */
+:root{
+  --fs-fine:clamp(11px, .30vw + 7.6px, 13px);     /* 注脚 / 图例 */
+  --fs-sm:clamp(12px, .34vw + 8.0px, 14px);       /* 标签 / 胶囊 */
+  --fs-row:clamp(13.5px, .42vw + 8.6px, 16.5px);  /* 键值行 / 列表 */
+  --fs-body:clamp(14.5px, .50vw + 9.0px, 18px);   /* 正文 */
+  --fs-lead:clamp(15px, .56vw + 9.4px, 19.5px);   /* 卡内小标题 */
+  --fs-h:clamp(16.5px, .78vw + 9.4px, 23px);      /* 卡片题 */
+  --fs-title:clamp(21px, 1.05vw + 10.4px, 30px);  /* 页题 */
+  --fs-hero:clamp(26px, 1.50vw + 11.4px, 38px);   /* 车名 */
+  --fs-num:clamp(26px, 1.65vw + 11px, 40px);      /* 车况大数 */
+}
+
+/* ══════════════════════ 1. 主题令牌 ══════════════════════ */
+
+/* ── 素笺青徽 · 亮版宣纸水墨 ── */
+:root,
+html[data-theme="light"]{
+  --paper:#EFE6D2;          /* 宣纸 */
+  --paper-2:#E7DCC4;        /* 纸背 */
+  --paper-3:#DCCFB2;
+  --sheet:#F8F1E2;          /* 覆在纸上的卡面 */
+  --sheet-2:#EFE5D0;        /* 卡内嵌 */
+  --ink:#241F19;            /* 浓墨 */
+  --ink-2:#544B3E;          /* 淡墨 */
+  --ink-3:#665B49;          /* 最淡墨（仍要过 4.5:1） */
+  --rule:#C9B99A;           /* 淡墨描边 */
+  --rule-2:#B5A184;         /* 加重描边 */
+  --seal:#A63B2A;           /* 朱印 */
+  --seal-soft:rgba(166,59,42,.10);
+  --teal:#2E6B5B;           /* 青徽（主色） */
+  --teal-2:#3F8574;
+  --teal-soft:rgba(46,107,91,.10);
+  --ok:#3C7A4A; --ok-soft:rgba(60,122,74,.12);
+  --warn:#A9741E; --warn-soft:rgba(169,116,30,.12);
+  --danger:#A63B2A; --danger-soft:rgba(166,59,42,.12);
+
+  --txt:var(--ink); --muted:var(--ink-2); --sub:var(--ink-3);
+  --accent:var(--teal); --accent-d:var(--teal);
+  --card:var(--sheet); --card2:var(--sheet-2); --line:var(--rule);
+  --bg:var(--paper); --bg2:var(--paper-2); --bg3:var(--paper-3);
+  --shadow:0 1px 0 rgba(80,62,36,.10), 0 3px 10px -6px rgba(80,62,36,.30);
+  --radius:3px; --radius-s:2px; --radius-xs:2px;
+  --glass:none;
+
+  --font-song:"Songti SC","STSong","Noto Serif CJK SC","Noto Serif SC","Source Han Serif SC","Source Han Serif CN","SimSun","Noto Serif",serif;
+  --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体",var(--font-song);
+  --font-title:var(--font-song);
+  --font-body:var(--font-song);
+
+  --ease-ink:cubic-bezier(.22,.68,.30,1);      /* 墨晕舒展：先疾后缓 */
+  --ease-press:cubic-bezier(.34,1.3,.64,1);
+
+  --stroke-icon:url(#gf-brush);
+  --tex-page:var(--tex-paper);
+  --tex-card:var(--tex-fiber);
+  --tex-op:.55;
+  --line-w:1px;
+  --track-h:1.75em;
+
+  /* 3.18.2 整页背景：宣纸水墨长卷（位图，见 _gen_gf_bg.py） */
+  --bg-art:url("bg-guofeng-light.jpg");
+  --sheet-a:rgba(250,244,231,.62);      /* 半透明卡面 —— 让山水从卡下透出来 */
+  --sheet-a2:rgba(240,230,209,.52);
+  --bar-a:rgba(236,226,203,.74);        /* 顶栏 / 导航底 */
+  --card-edge:inset 0 1px 0 rgba(255,255,255,.62);
+  --card-ring:inset 0 0 0 1px rgba(255,255,255,.34);
+  --card-top:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,0) 78px);
+  --card-drop:0 12px 26px -18px rgba(74,56,30,.66), 0 2px 6px -3px rgba(74,56,30,.26);
+}
+
+/* ── 玄烬朱纹 · 暗版玄石碑刻 ── */
+html[data-theme="dark"]{
+  --paper:#0E0C0A;          /* 玄石底 */
+  --paper-2:#141109;
+  --paper-3:#0A0806;
+  --sheet:#1B1712;          /* 石面 */
+  --sheet-2:#241E17;        /* 石层 */
+  --ink:#E8DDC6;            /* 石粉白 */
+  --ink-2:#B1A28A;
+  --ink-3:#8E8168;          /* 石粉灰（仍要过 4.5:1） */
+  --rule:#332B22;           /* 石缝 */
+  --rule-2:#4A3E30;
+  --seal:#B8402C;           /* 朱砂 */
+  --seal-soft:rgba(184,64,44,.14);
+  --teal:#C9A15A;           /* 暗金（此套的"亮色"，与亮版的青绿完全异构） */
+  --teal-2:#9C7B3C;
+  --teal-soft:rgba(201,161,90,.12);
+  --ok:#7FA46B; --ok-soft:rgba(127,164,107,.14);
+  --warn:#C99A4B; --warn-soft:rgba(201,154,75,.14);
+  --danger:#C6462F; --danger-soft:rgba(198,70,47,.16);
+
+  --txt:var(--ink); --muted:var(--ink-2); --sub:var(--ink-3);
+  --accent:var(--seal); --accent-d:#8F2E1E;
+  --card:var(--sheet); --card2:var(--sheet-2); --line:var(--rule);
+  --bg:var(--paper); --bg2:var(--paper-2); --bg3:var(--paper-3);
+  /* 石刻不用外投影，用「上缘受光、下缘积影」的内凹 */
+  --shadow:inset 0 1px 0 rgba(232,221,198,.055), inset 0 -1px 0 rgba(0,0,0,.55);
+  --radius:3px; --radius-s:2px; --radius-xs:2px;
+  --glass:none;
+
+  --font-song:"Songti SC","STSong","Noto Serif CJK SC","Noto Serif SC","Source Han Serif SC","Source Han Serif CN","SimSun","Noto Serif",serif;
+  --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体",var(--font-song);
+  --font-title:var(--font-song);
+  --font-body:var(--font-song);
+
+  --ease-ink:cubic-bezier(.16,.84,.30,1);
+  --ease-press:cubic-bezier(.34,1.45,.64,1);
+
+  --stroke-icon:url(#gf-carve);
+  --tex-page:var(--tex-rock);
+  --tex-card:var(--tex-patina);
+  --tex-op:.75;
+  --line-w:1px;
+  --track-h:1.9em;          /* 暗版字形略厚，行距放宽 */
+
+  /* 3.18.2 整页背景：玄石远山 + 朱砂远光 */
+  --bg-art:url("bg-guofeng-dark.jpg");
+  --sheet-a:rgba(36,30,22,.70);
+  --sheet-a2:rgba(44,37,27,.62);
+  --bar-a:rgba(16,13,9,.78);
+  --card-edge:inset 0 1px 0 rgba(232,221,198,.075);
+  --card-ring:inset 0 0 0 1px rgba(232,221,198,.055);
+  --card-top:linear-gradient(180deg,rgba(232,221,198,.05),rgba(232,221,198,0) 84px);
+  --card-drop:0 14px 34px -22px rgba(0,0,0,.95);
+}
+
+/* ══════════════════════ 2. 根骨与排版 ══════════════════════ */
+*{box-sizing:border-box}
+
+html{background:var(--paper)}
+
+body{
+  margin:0;
+  color:var(--txt);
+  font-family:var(--font-body);
+  font-size:var(--fs-body);
+  line-height:var(--track-h);
+  letter-spacing:.045em;      /* 古风阅读：字距松开 */
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  background-color:var(--paper);
+  /* ★ 3.18.2：全页面渗透的古风背景 —— 两层叠：
+       ① 上层 纸/石纤维噪声（repeat，900px，无缝，做"纸的质地"）
+       ② 底层 水墨山水长卷（no-repeat + cover，铺满整个视口）
+     顺序即层级：写在前的在上。纹理层半透明，山水从纤维下透出来。 */
+  background-image:var(--tex-page), var(--bg-art);
+  background-repeat:repeat, no-repeat;
+  background-size:900px 900px, cover;
+  background-position:0 0, center center;
+  overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;user-select:none;
+}
+
+/* 墨晕／石晕：几团不规则压暗，位置刻意不居中、不对称。
+   3.18.2 起底图本身已有山与云，这里只留极淡的一层，负责"压角"而不是"上色"。 */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(58% 42% at 12% -6%, rgba(70,56,32,.055), transparent 72%),
+    radial-gradient(46% 36% at 96% 18%, rgba(70,56,32,.04), transparent 70%),
+    radial-gradient(70% 52% at 48% 104%, rgba(52,40,22,.06), transparent 74%);
+  mix-blend-mode:multiply;
+}
+html[data-theme="dark"] body::before{
+  background:
+    radial-gradient(58% 42% at 8% -8%, rgba(184,64,44,.07), transparent 70%),
+    radial-gradient(44% 34% at 98% 22%, rgba(201,161,90,.05), transparent 68%),
+    radial-gradient(72% 50% at 52% 106%, rgba(0,0,0,.42), transparent 76%);
+  mix-blend-mode:normal;
+}
+
+b{font-weight:600;color:inherit}
+svg{width:24px;height:24px;fill:currentColor}
+
+/* 8dp 栅格：2/4/8/16/24/32 */
+:root{--u:8px}
+
+/* ══════════════════════ 3. 结构骨架 ══════════════════════ */
+.app{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;
+  height:100vh;height:100dvh;
+}
+
+/* ── 顶栏：一条淡墨横线，标题用宋体小字，右侧器物钮 ── */
+.topbar{
+  flex:none;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 24px 14px;
+  /* 3.18.2：不再用实底 —— 半透明让山水从栏下透出来，下沿虚化收进纸里 */
+  background:linear-gradient(180deg,var(--bar-a) 0%,var(--bar-a) 58%,transparent 100%);
+  -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+  border-bottom:var(--line-w) solid var(--line);
+  position:relative;
+}
+/* 顶栏下沿的一道淡墨双线（古书页眉） */
+.topbar::after{
+  content:"";position:absolute;left:16px;right:16px;bottom:-4px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--rule) 18%,var(--rule) 82%,transparent);
+  opacity:.55;
+}
+.tb-left{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tb-title{
+  font-family:var(--font-title);
+  font-size:var(--fs-title);font-weight:600;letter-spacing:.14em;
+  color:var(--ink);line-height:1.3;
+}
+html[data-theme="dark"] .tb-title{
+  color:var(--ink);letter-spacing:.18em;
+  text-shadow:0 0 12px rgba(184,64,44,.22);
+}
+.tb-sub{
+  font-size:var(--fs-sm);color:var(--sub);letter-spacing:.08em;
+  font-family:var(--font-kai);
+}
+.tb-right{display:flex;gap:8px;align-items:center}
+
+/* ── 器物钮（原 icon-btn）：方寸印盒，边角不圆 ── */
+.icon-btn{
+  width:48px;height:48px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  padding:0;cursor:pointer;
+  border:var(--line-w) solid var(--rule-2);
+  border-radius:var(--radius);
+  background:var(--sheet);
+  color:var(--muted);
+  position:relative;
+  transition:transform .28s var(--ease-press), color .24s var(--ease-ink),
+             background .24s var(--ease-ink), box-shadow .24s var(--ease-ink);
+  box-shadow:var(--shadow);
+}
+/* 四角内收的墨点 —— 印盒的铆钉，两版都保留 */
+.icon-btn::before,
+.icon-btn::after{
+  content:"";position:absolute;width:3px;height:3px;border-radius:50%;
+  background:var(--rule-2);opacity:.85;
+}
+.icon-btn::before{left:5px;top:5px;box-shadow:29px 0 0 var(--rule-2)}
+.icon-btn::after{left:5px;bottom:5px;box-shadow:29px 0 0 var(--rule-2)}
+.icon-btn svg{width:22px;height:22px;filter:var(--stroke-icon)}
+.icon-btn:active{transform:scale(.93)}
+.icon-btn.active{
+  color:var(--seal);border-color:var(--seal);
+  background:var(--seal-soft);
+}
+
+/* 内容区 */
+.content{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:16px 16px 32px;
+  -webkit-overflow-scrolling:touch;
+  position:relative;
+  scroll-behavior:smooth;
+}
+.page{display:none}
+.page.active{display:block}
+
+/* ══════════════════════ 4. 卡面：宣纸 / 石面 ══════════════════════ */
+.card{
+  position:relative;
+  /* ★ 3.18.2：卡面改成「半透明宣纸」不再是一块死色 ——
+     底下的水墨山水透过卡面仍能看见，整页才是一体的，不是"贴了张白纸"。 */
+  background:var(--sheet-a);
+  background-image:var(--card-top),var(--tex-card);
+  background-size:100% 100%,600px 600px;
+  border:var(--line-w) solid var(--rule);
+  border-radius:var(--radius);
+  padding:22px 18px;
+  margin-bottom:14px;
+  /* 上缘一线受光 + 落影：纸片被"放"在桌面上的重量感 */
+  box-shadow:var(--card-ring),var(--card-edge),var(--card-drop);
+  -webkit-backdrop-filter:blur(3.5px) saturate(1.06);
+  backdrop-filter:blur(3.5px) saturate(1.06);
+  animation:cardRise .46s var(--ease-ink) both;
+}
+/* 卡面左上角一点朱印色，作为"用了朱墨"的暗示，不是装饰花边 */
+.card::before{
+  content:"";position:absolute;left:-1px;top:-1px;width:19px;height:19px;
+  border-top-left-radius:var(--radius);
+  border-left:2.5px solid var(--seal);border-top:2.5px solid var(--seal);
+  opacity:.72;pointer-events:none;z-index:2;
+}
+html[data-theme="dark"] .card{border-color:var(--rule-2)}
+html[data-theme="dark"] .card::before{
+  border-left:2px solid var(--seal);border-top:2px solid var(--seal);opacity:.8;
+  box-shadow:0 0 10px rgba(184,64,44,.28);
+}
+/* 右下角一道折线：与左上朱角对角呼应，卡片便有了"纸折过"的立体感 */
+.card::after{
+  content:"";position:absolute;right:-1px;bottom:-1px;width:15px;height:15px;
+  border-right:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2);
+  border-bottom-right-radius:var(--radius);
+  opacity:.55;pointer-events:none;z-index:2;
+}
+html[data-theme="dark"] .card::after{opacity:.8}
+.card:hover{border-color:var(--rule)}
+
+/* 车辆卡另有照片与深色文字体系：不参与半透明/毛玻璃/折角（否则照片会透出底图） */
+.hero.card{
+  background:var(--paper-3);
+  -webkit-backdrop-filter:none;backdrop-filter:none;
+  box-shadow:var(--shadow);
+}
+/* 车辆卡：右下留一枚「闲章」——古画压角印，横平竖直的方章，
+   一是有古意，二是把大片空白的车身区域"压"住，卡面不至于飘。 */
+.hero.card::after{
+  content:"青简";
+  /* 压在车身右上方的留白处 —— 落下沿会盖住「充电 --」，所以提到上三分之一 */
+  position:absolute;right:16px;top:26%;
+  width:40px;height:40px;padding:6px 0;
+  display:grid;place-items:center;
+  writing-mode:vertical-rl;text-orientation:upright;
+  font-family:var(--font-title);font-size:11.5px;font-weight:600;
+  letter-spacing:.12em;line-height:1;
+  color:rgba(166,59,42,.66);
+  border:2px solid rgba(166,59,42,.52);
+  border-radius:2px;
+  background:rgba(250,244,231,.16);
+  opacity:.95;pointer-events:none;z-index:5;
+  transform:rotate(-1.2deg);
+}
+@media (max-width:899px){
+  .hero.card::after{width:34px;height:34px;font-size:10px;right:12px;top:30%}
+}
+html[data-theme="dark"] .hero.card::after{
+  color:rgba(214,86,62,.72);
+  border-color:rgba(214,86,62,.55);
+  background:rgba(0,0,0,.18);
+}
+
+/* 分区题（小节标题）：题字 + 一道随字长的淡墨引线 */
+.sec-title{
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--font-title);
+  font-size:var(--fs-row);font-weight:600;letter-spacing:.24em;
+  color:var(--muted);
+  margin:24px 0 12px;padding-left:2px;
+}
+.sec-title::after{
+  content:"";flex:1;height:1px;
+  background:linear-gradient(90deg,var(--rule),transparent);
+}
+/* 3.18.2：背景有了山水，分组题会落在墨块上 —— 用纸色光晕把字从画里拔出来，
+   不改布局、不加底色块，只在字周围"描"一圈纸。 */
+.sec-title{
+  text-shadow:0 0 6px var(--paper),0 0 12px var(--paper),0 0 20px rgba(239,230,210,.85);
+}
+.sec-inline{
+  position:relative;
+  display:flex;align-items:center;justify-content:space-between;
+  padding-left:12px;
+  font-family:var(--font-title);
+  font-size:var(--fs-lead);font-weight:600;letter-spacing:.08em;color:var(--ink);
+  margin-bottom:14px;
+}
+/* 朱线：题字左侧一段竖笔，取自古籍条目标记 */
+.sec-inline::before{
+  content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:1.05em;border-radius:1px;
+  background:var(--seal);opacity:.78;
+}
+
+/* ── 可折叠卡片的题栏 ── */
+.card.foldable > .fold-head{
+  cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+  user-select:none;touch-action:manipulation;
+  padding:20px 16px;margin:-24px -20px 20px;
+  border-radius:var(--radius) var(--radius) 0 0;
+  transition:background .24s var(--ease-ink);
+}
+.card.foldable > .fold-head:active{background:var(--sheet-2)}
+/* 折角：一道手写笔意的撇捺（不用 ▾ 字符） */
+.card.foldable > .fold-head::after{
+  content:"";width:9px;height:9px;flex:none;
+  border-right:1.5px solid var(--muted);
+  border-bottom:1.5px solid var(--muted);
+  transform:rotate(45deg) translateY(-2px);
+  transition:transform .42s var(--ease-press);
+}
+.card.foldable.folded > .fold-head::after{transform:rotate(-45deg) translateY(-2px)}
+.card.foldable.folded > .fold-head{margin:0;padding:24px 20px;border-radius:var(--radius)}
+.card.foldable.folded > .fold-body{display:none}
+.card.foldable.folded{padding:0}
+
+/* ══════════════════════ 5. 车辆卡（水墨） ══════════════════════ */
+.hero{
+  position:relative;overflow:hidden;padding:0;border:none;
+  border-radius:var(--radius);
+  background:var(--paper-3);
+  box-shadow:var(--shadow);
+  /* 车内固定深色文字体系：照片底上必须压深 */
+  --txt:#F4EEE0; --muted:#C6B89C; --sub:#9C8E74;
+  --line:rgba(244,238,224,.16);
+  --ok:#8FCB9B; --ok-bg:rgba(143,203,155,.16); --ok-line:rgba(143,203,155,.34);
+  --warn:#E0BE7A; --warn-bg:rgba(224,190,122,.16); --warn-line:rgba(224,190,122,.34);
+}
+.hero-bg{position:absolute;inset:0;overflow:hidden;background:linear-gradient(160deg,#2A241B,#12100C)}
+.hero-bg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+.hero-bg-img.hero-bg-default{width:calc(100% + 30px);max-width:none}
+.hero-bg::after{
+  content:"";position:absolute;inset:0;
+  background:
+    linear-gradient(100deg,rgba(20,16,11,.95) 0%,rgba(20,16,11,.80) 42%,rgba(20,16,11,.26) 100%),
+    radial-gradient(70% 40% at 20% 110%,rgba(20,16,11,.85),transparent 70%);
+}
+.hero-body{
+  position:relative;padding:24px 20px;
+  background:linear-gradient(180deg,rgba(18,14,10,.20) 0%,rgba(18,14,10,.58) 46%,rgba(18,14,10,.90) 100%);
+}
+.hero-info{display:flex;flex-direction:column;align-items:flex-start;position:relative;z-index:4;padding-right:6px}
+.hero-name{
+  font-family:var(--font-title);
+  font-size:var(--fs-hero);font-weight:600;letter-spacing:.12em;line-height:1.22;
+  color:#F6F0E2;
+  text-shadow:0 2px 12px rgba(0,0,0,.55);
+}
+.hero-name.holding{opacity:.72;transform:scale(.97);transition:none}
+.hero-plate{
+  display:inline-block;margin-top:8px;padding:2px 12px;
+  font-size:var(--fs-sm);font-weight:600;letter-spacing:.3em;
+  background:rgba(46,107,91,.30);
+  color:#CFE8DE;border:1px solid rgba(143,203,155,.42);
+  border-radius:var(--radius-xs);
+}
+/* 右上角诸态胶囊：一律深底亮字，压在车顶亮部也读得清 */
+.pill-row{
+  position:absolute;top:12px;right:12px;z-index:3;
+  display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;
+  gap:6px;max-width:64%;pointer-events:none;
+}
+.pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:2px;
+  font-size:11.5px;font-weight:500;letter-spacing:.06em;
+  background:rgba(14,11,8,.72);
+  border:1px solid rgba(244,238,224,.22);
+  color:#E4DCC8;white-space:nowrap;min-height:24px;
+  backdrop-filter:none;
+}
+.pill i{width:5px;height:5px;border-radius:50%;background:#9C8E74;display:block;transition:.24s}
+.pill.on i{background:#8FCB9B;box-shadow:0 0 8px rgba(143,203,155,.75)}
+.pill.warn i{background:#E0BE7A;box-shadow:0 0 8px rgba(224,190,122,.7)}
+.pill.off i{background:#D4776A;box-shadow:0 0 8px rgba(212,119,106,.7)}
+
+/* 车况四数：等宽排布 + 一道细线分隔，像器物铭文 */
+.hero-metric{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+  margin-top:20px;padding-top:16px;
+  border-top:1px solid rgba(244,238,224,.14);
+}
+.hm-item{text-align:center;position:relative}
+.hm-item + .hm-item::before{
+  content:"";position:absolute;left:0;top:12%;height:76%;width:1px;
+  background:linear-gradient(180deg,transparent,rgba(244,238,224,.18),transparent);
+}
+.hm-val{
+  font-family:var(--font-title);
+  font-size:var(--fs-num);font-weight:600;line-height:1.06;letter-spacing:.04em;
+  color:#F6F0E2;
+}
+.hm-val em{font-size:.40em;font-style:normal;font-weight:400;color:#B8AA8E;margin-left:2px;letter-spacing:0}
+.hm-key{font-size:var(--fs-sm);color:#A99B80;margin-top:4px;letter-spacing:.16em}
+.ac-live{
+  margin-top:16px;padding-top:12px;
+  border-top:1px solid rgba(244,238,224,.14);
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  font-size:var(--fs-sm);color:#B8AA8E;letter-spacing:.04em;
+}
+.ac-live.on{color:#8FCB9B}
+.ac-live b{font-weight:600;color:inherit}
+.ac-live em{font-style:normal;color:#9C8E74;font-size:11.5px}
+
+/* ══════════════════════ 6. 器物键（原 ctl） ══════════════════════ */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+
+.ctl{
+  position:relative;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:16px 4px 14px;
+  min-height:88px;
+  border:var(--line-w) solid var(--rule);
+  border-radius:var(--radius);
+  background:var(--sheet-2);
+  color:var(--ink);
+  font-family:var(--font-body);
+  cursor:pointer;
+  transition:transform .26s var(--ease-press),background .24s var(--ease-ink),
+             border-color .24s var(--ease-ink),box-shadow .24s var(--ease-ink);
+  box-shadow:var(--shadow);
+}
+/* 键面微斜的墨影：模拟侧光（亮版左上受光） */
+.ctl::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(145deg,rgba(255,255,255,.30),transparent 46%);
+  opacity:.9;
+}
+html[data-theme="dark"] .ctl::before{
+  background:linear-gradient(145deg,rgba(232,221,198,.07),transparent 42%);
+}
+.ctl:active{transform:scale(.955)}
+/* 亮版：按下像墨渗开，边缘泛起一圈淡青 */
+html[data-theme="light"] .ctl:active{
+  background:var(--paper-3);
+  box-shadow:0 0 0 3px rgba(46,107,91,.10), inset 0 2px 6px rgba(80,62,36,.18);
+}
+/* 暗版：按下像石面被压进凹槽 */
+html[data-theme="dark"] .ctl:active{
+  background:#191510;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.72), inset 0 -1px 0 rgba(232,221,198,.05);
+}
+.ctl.busy{opacity:.45;pointer-events:none}
+.ctl-svg{
+  width:30px;height:30px;flex:none;
+  stroke:currentColor;fill:none;stroke-width:1.5;
+  filter:var(--stroke-icon);
+  color:var(--muted);
+}
+.ctl-t{
+  font-size:var(--fs-sm);font-weight:500;letter-spacing:.08em;
+  color:var(--ink);white-space:nowrap;line-height:1.3;
+}
+/* 功能色：只染图标，不铺满键面（避免刺眼、也符合"墨色为主"） */
+.ctl[data-act="unlock"] .ctl-svg{color:#2E8A5B}
+.ctl[data-act="lock"] .ctl-svg{color:#2F6B93}
+.ctl[data-act="trunk_open"] .ctl-svg{color:#A9741E}
+.ctl[data-act="trunk_close"] .ctl-svg{color:#8A5C16}
+.ctl[data-act="air_vent"] .ctl-svg{color:#2E7F76}
+.ctl[data-act="windows"] .ctl-svg{color:#6B7480}
+.ctl[data-act="flash"] .ctl-svg{color:#B08A18}
+.ctl[data-act="find"] .ctl-svg{color:#2C7FA6}
+.ctl[data-act="start"] .ctl-svg{color:#B45F1C}
+.ctl[data-act="off"] .ctl-svg{color:#6E5A96}
+html[data-theme="dark"] .ctl[data-act="unlock"] .ctl-svg{color:#8FCB9B}
+html[data-theme="dark"] .ctl[data-act="lock"] .ctl-svg{color:#7FB2D6}
+html[data-theme="dark"] .ctl[data-act="trunk_open"] .ctl-svg{color:#D9B268}
+html[data-theme="dark"] .ctl[data-act="trunk_close"] .ctl-svg{color:#C09048}
+html[data-theme="dark"] .ctl[data-act="air_vent"] .ctl-svg{color:#7FC4B4}
+html[data-theme="dark"] .ctl[data-act="windows"] .ctl-svg{color:#A6AEBA}
+html[data-theme="dark"] .ctl[data-act="flash"] .ctl-svg{color:#E4C070}
+html[data-theme="dark"] .ctl[data-act="find"] .ctl-svg{color:#7FC0DE}
+html[data-theme="dark"] .ctl[data-act="start"] .ctl-svg{color:#E09A62}
+html[data-theme="dark"] .ctl[data-act="off"] .ctl-svg{color:#AE9AD0}
+.grid5 .ctl{min-height:84px;padding:14px 3px 11px;gap:7px}
+.grid5 .ctl-svg{width:26px;height:26px}
+.grid5 .ctl-t{font-size:var(--fs-fine);letter-spacing:.04em}
+
+/* ══════════════════════ 7. 空调卡 ══════════════════════ */
+.ac-card{padding:24px 20px}
+.ac-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.ac-title{font-family:var(--font-title);font-size:var(--fs-h);font-weight:600;letter-spacing:.14em;color:var(--ink)}
+.ac-sub{font-size:12.5px;color:var(--sub);margin-top:4px;letter-spacing:.05em}
+.ac-temp{text-align:center;margin-bottom:16px}
+.ac-temp-val{
+  font-family:var(--font-title);
+  font-size:52px;font-weight:600;line-height:1;
+  letter-spacing:-.02em;color:var(--ink);
+}
+html[data-theme="dark"] .ac-temp-val{text-shadow:0 0 18px rgba(184,64,44,.20)}
+
+/* ══════════════════════ 8. 开关（铜钮 / 玉钮） ══════════════════════ */
+.switch{
+  width:60px;height:32px;flex:none;position:relative;cursor:pointer;
+  border:var(--line-w) solid var(--rule-2);
+  border-radius:2px;
+  background:
+    repeating-linear-gradient(90deg,rgba(0,0,0,.035) 0 1px,transparent 1px 4px),
+    var(--sheet-2);
+  box-shadow:inset 0 1px 3px rgba(80,62,36,.18);
+  transition:background .34s var(--ease-ink),border-color .34s var(--ease-ink);
+}
+html[data-theme="dark"] .switch{
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.7),inset 0 -1px 0 rgba(232,221,198,.05);
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.022) 0 1px,transparent 1px 5px),
+    var(--sheet-2);
+}
+/* 滑块：一方"纽"，不是圆片 —— 圆片是 iOS 语言，方纽才是器物 */
+.switch i{
+  position:absolute;top:3px;left:3px;width:24px;height:24px;
+  border-radius:1px;
+  background:linear-gradient(160deg,var(--paper-3),var(--paper-2));
+  border:1px solid var(--rule-2);
+  box-shadow:0 1px 2px rgba(80,62,36,.28);
+  transition:left .38s var(--ease-press),background .3s var(--ease-ink),border-color .3s;
+}
+html[data-theme="dark"] .switch i{
+  background:linear-gradient(160deg,#3A3228,#241E17);
+  border-color:#4A3E30;
+  box-shadow:0 1px 0 rgba(232,221,198,.10),0 2px 5px rgba(0,0,0,.6);
+}
+.switch.on{
+  background:var(--teal-soft);
+  border-color:var(--teal);
+}
+.switch.on i{
+  left:31px;
+  background:linear-gradient(160deg,var(--teal-2),var(--teal));
+  border-color:var(--teal);
+}
+html[data-theme="dark"] .switch.on{background:rgba(184,64,44,.18);border-color:var(--seal)}
+html[data-theme="dark"] .switch.on i{
+  background:linear-gradient(160deg,#D45B42,#8F2E1E);
+  border-color:#D45B42;
+  box-shadow:0 0 10px rgba(184,64,44,.55),0 1px 0 rgba(232,221,198,.12);
+}
+
+/* ══════════════════════ 9. 复选（朱印方框） ══════════════════════ */
+input[type="checkbox"]{
+  appearance:none;-webkit-appearance:none;
+  width:22px;height:22px;flex:none;margin:0;
+  border:1.5px solid var(--rule-2);
+  border-radius:1px;
+  background:var(--sheet-2);
+  position:relative;cursor:pointer;
+  transition:border-color .24s var(--ease-ink),background .24s var(--ease-ink);
+}
+input[type="checkbox"]:checked{
+  border-color:var(--seal);
+  background:var(--seal-soft);
+}
+input[type="checkbox"]:checked::after{
+  content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;
+  border-right:2px solid var(--seal);border-bottom:2px solid var(--seal);
+  transform:rotate(40deg);
+}
+input[type="checkbox"]:disabled{opacity:.5;cursor:not-allowed}
+.lstep{display:flex;align-items:center;gap:8px}
+
+/* ══════════════════════ 10. 下拉（竹简槽） ══════════════════════ */
+select,
+.mc-sel{
+  appearance:none;-webkit-appearance:none;
+  font-family:var(--font-body);font-size:14px;letter-spacing:.04em;
+  color:var(--ink);
+  padding:12px 40px 12px 14px;
+  min-height:48px;
+  border:var(--line-w) solid var(--rule-2);
+  border-radius:var(--radius-s);
+  background-color:var(--sheet-2);
+  /* 右侧一道手笔下撇，代替原生三角 */
+  background-image:
+    linear-gradient(45deg,transparent 49%,var(--muted) 50%,var(--muted) 58%,transparent 59%),
+    linear-gradient(-45deg,transparent 49%,var(--muted) 50%,var(--muted) 58%,transparent 59%);
+  background-position:calc(100% - 22px) 50%, calc(100% - 16px) 50%;
+  background-size:7px 7px,7px 7px;
+  background-repeat:no-repeat;
+  outline:none;
+  box-shadow:inset 0 1px 2px rgba(80,62,36,.10);
+  transition:border-color .24s var(--ease-ink);
+}
+html[data-theme="dark"] select,
+html[data-theme="dark"] .mc-sel{
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.6);
+}
+select:focus,.mc-sel:focus{border-color:var(--teal)}
+html[data-theme="dark"] select:focus,html[data-theme="dark"] .mc-sel:focus{border-color:var(--seal)}
+select option{background:var(--sheet);color:var(--ink);font-family:var(--font-body)}
+
+/* 输入框 */
+input[type="text"],input[type="password"],input[type="number"],input[type="tel"],.fld input,.inp{
+  font-family:var(--font-body);font-size:14px;letter-spacing:.04em;
+  color:var(--ink);
+  background:var(--sheet-2);
+  border:var(--line-w) solid var(--rule-2);
+  border-radius:var(--radius-s);
+  padding:12px 14px;min-height:48px;
+  outline:none;
+  box-shadow:inset 0 1px 2px rgba(80,62,36,.10);
+}
+input:focus{border-color:var(--teal)}
+html[data-theme="dark"] input:focus{border-color:var(--seal)}
+
+/* ══════════════════════ 11. 滑块（砚池） ══════════════════════ */
+input[type="range"]{
+  appearance:none;-webkit-appearance:none;
+  width:100%;height:36px;background:transparent;outline:none;cursor:pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track{
+  height:6px;border-radius:1px;
+  background:linear-gradient(90deg,var(--teal-soft),var(--teal) 60%,var(--teal));
+  border:1px solid var(--rule-2);
+  box-shadow:inset 0 1px 2px rgba(80,62,36,.22);
+}
+html[data-theme="dark"] input[type="range"]::-webkit-slider-runnable-track{
+  background:linear-gradient(90deg,rgba(184,64,44,.30),var(--seal) 60%,var(--seal));
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.7);
+}
+input[type="range"]::-webkit-slider-thumb{
+  appearance:none;-webkit-appearance:none;
+  width:22px;height:22px;margin-top:-9px;
+  border-radius:1px;
+  background:linear-gradient(160deg,var(--paper-3),var(--sheet));
+  border:1.5px solid var(--teal);
+  box-shadow:0 2px 4px rgba(80,62,36,.30);
+  transition:transform .2s var(--ease-press);
+}
+input[type="range"]::-webkit-slider-thumb:active{transform:scale(.9)}
+html[data-theme="dark"] input[type="range"]::-webkit-slider-thumb{
+  background:linear-gradient(160deg,#3E3529,#241E17);
+  border-color:var(--seal);
+  box-shadow:0 0 8px rgba(184,64,44,.45),0 2px 4px rgba(0,0,0,.7);
+}
+
+/* ══════════════════════ 12. 按钮（朱印 / 墨押） ══════════════════════ */
+.btn{
+  min-height:52px;width:100%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-title);font-size:var(--fs-lead);font-weight:600;letter-spacing:.16em;
+  border-radius:var(--radius-s);
+  border:var(--line-w) solid var(--rule-2);
+  background:var(--sheet-2);color:var(--ink);
+  cursor:pointer;
+  box-shadow:var(--shadow);
+  transition:transform .26s var(--ease-press),background .24s var(--ease-ink),color .24s;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{
+  background:var(--teal);color:#F6F1E4;border-color:var(--teal);
+}
+.btn-primary:active{background:var(--teal-2)}
+html[data-theme="dark"] .btn-primary{
+  background:linear-gradient(180deg,#A83524,#7E2718);
+  border-color:#D45B42;color:#F2E6D2;
+  box-shadow:inset 0 1px 0 rgba(242,230,210,.18),0 0 14px rgba(184,64,44,.28);
+}
+.btn-ghost{background:transparent;color:var(--muted);border-color:var(--rule-2)}
+.btn.busy{opacity:.5;pointer-events:none}
+
+/* 小方钮（chip） */
+.chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:48px;padding:0 16px;   /* 3.18.2：40 → 48，车机上手指按得准 */
+  font-family:var(--font-body);font-size:var(--fs-sm);letter-spacing:.08em;
+  color:var(--muted);
+  background:var(--sheet-2);
+  border:var(--line-w) solid var(--rule);
+  border-radius:var(--radius-s);
+  cursor:pointer;
+  transition:transform .22s var(--ease-press),background .24s var(--ease-ink),
+             color .24s var(--ease-ink),border-color .24s var(--ease-ink);
+}
+.chip:active{transform:scale(.95)}
+.chip.active{
+  color:#F6F1E4;background:var(--teal);border-color:var(--teal);
+}
+html[data-theme="dark"] .chip.active{
+  color:#F2E6D2;background:linear-gradient(180deg,#A83524,#7E2718);border-color:#D45B42;
+}
+#chipDur{display:flex;flex-wrap:nowrap;gap:8px}
+#chipDur .chip{flex:1 1 0;min-width:0;padding:0 6px;white-space:nowrap}
+
+/* ══════════════════════ 13. 分割线 / 进度 / 滚动条 ══════════════════════ */
+hr,.divider{
+  border:none;height:1px;margin:16px 0;
+  background:linear-gradient(90deg,transparent,var(--rule) 14%,var(--rule) 86%,transparent);
+}
+progress{
+  appearance:none;-webkit-appearance:none;
+  width:100%;height:6px;border:none;border-radius:1px;
+  background:var(--sheet-2);overflow:hidden;
+}
+progress::-webkit-progress-bar{background:var(--sheet-2)}
+progress::-webkit-progress-value{background:linear-gradient(90deg,var(--teal-2),var(--teal))}
+html[data-theme="dark"] progress::-webkit-progress-value{
+  background:linear-gradient(90deg,#8F2E1E,var(--seal));
+}
+/* 滚动条：一根细墨条，不带圆头 */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{
+  background:var(--rule-2);border-radius:0;
+  border-top:8px solid transparent;border-bottom:8px solid transparent;
+  background-clip:padding-box;
+}
+html[data-theme="dark"] ::-webkit-scrollbar-thumb{background:var(--rule-2);background-clip:padding-box}
+
+/* ══════════════════════ 14. 导航（底部四格 → 侧栏） ══════════════════════ */
+.navbar{
+  flex:none;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:var(--paper-2);
+  border-top:var(--line-w) solid var(--rule);
+  padding:8px 8px calc(env(safe-area-inset-bottom,0px) + 8px);
+  position:relative;z-index:10;
+}
+.navbar::before{
+  content:"";position:absolute;left:16px;right:16px;top:-4px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--rule) 20%,var(--rule) 80%,transparent);
+  opacity:.6;
+}
+.nav-item{
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  min-height:60px;padding:6px 0;
+  background:none;border:none;cursor:pointer;
+  font-family:var(--font-body);font-size:var(--fs-sm);letter-spacing:.12em;
+  color:var(--sub);
+  transition:color .3s var(--ease-ink),transform .22s var(--ease-press);
+}
+.nav-item svg{width:23px;height:23px;filter:var(--stroke-icon);transition:transform .34s var(--ease-press)}
+.nav-item:active{transform:scale(.94)}
+.nav-item.active{color:var(--teal)}
+/* 选中态：字下一道朱笔短横（不是整块底色高亮） */
+.nav-item.active::after{
+  content:"";position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
+  width:20px;height:2px;border-radius:1px;background:var(--seal);
+  animation:inkSpread .42s var(--ease-ink) both;
+}
+html[data-theme="dark"] .nav-item.active{color:var(--seal)}
+html[data-theme="dark"] .nav-item.active::after{background:var(--seal);box-shadow:0 0 8px rgba(184,64,44,.8)}
+
+/* 页内入口（行程等次级页）：长得像一句话，不是导航格 */
+.page-link{
+  /* 同时带 .nav-item（复用其点击绑定），这里把导航格的列布局改回一行 */
+  display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;min-height:46px;padding:0 14px;margin:10px 0 4px;
+  font-family:var(--font-body);font-size:13.5px;letter-spacing:.1em;
+  color:var(--muted);
+  background:transparent;border:1px dashed var(--rule-2);border-radius:3px;
+  cursor:pointer;
+  transition:color .3s var(--ease-ink),border-color .3s var(--ease-ink);
+}
+.page-link .pl-arrow{font-family:var(--font-body);opacity:.6;transition:transform .3s var(--ease-ink)}
+.page-link:active{color:var(--teal);border-color:var(--teal)}
+.page-link:active .pl-arrow{transform:translateX(4px)}
+/* 它在 .page 里不该被 :nth-child 的入场延迟当成卡片处理 */
+.page-link.active{color:var(--muted)}
+.page-link.active::after{display:none}
+
+
+/* ══════════════════════ 15. 弹层（卷轴） / 浮字（Toast） ══════════════════════ */
+.sheet{
+  position:fixed;inset:0;z-index:90;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+  background:rgba(24,18,10,.62);
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  animation:veilIn .3s var(--ease-ink);
+}
+html[data-theme="dark"] .sheet{background:rgba(4,3,2,.78)}
+.sheet-card{
+  position:relative;
+  width:100%;max-width:440px;
+  max-height:88vh;overflow-y:auto;
+  background:var(--sheet);
+  background-image:var(--tex-card);background-size:600px 600px;
+  border:var(--line-w) solid var(--rule-2);
+  border-radius:var(--radius);
+  padding:32px 24px 24px;
+  box-shadow:0 18px 50px -22px rgba(30,22,12,.85);
+  animation:scrollOut .44s var(--ease-press);
+}
+/* 卷轴上下两道压边 */
+.sheet-card::before,.sheet-card::after{
+  content:"";position:absolute;left:0;right:0;height:5px;
+  background:linear-gradient(180deg,var(--rule-2),transparent);
+  opacity:.55;pointer-events:none;
+}
+.sheet-card::before{top:0}
+.sheet-card::after{bottom:0;transform:rotate(180deg)}
+
+/* Toast / 浮字：墨条 */
+#toast,.toast{
+  position:fixed;left:50%;bottom:96px;transform:translateX(-50%);
+  z-index:120;
+  max-width:82vw;padding:10px 18px;
+  font-family:var(--font-body);font-size:13.5px;letter-spacing:.08em;
+  color:#F4EEE0;
+  background:rgba(30,24,16,.94);
+  border:1px solid rgba(244,238,224,.18);
+  border-radius:2px;
+  box-shadow:0 8px 24px -12px rgba(0,0,0,.7);
+  animation:toastUp .34s var(--ease-press);
+}
+html[data-theme="dark"] #toast,html[data-theme="dark"] .toast{
+  border-color:rgba(184,64,44,.5);
+  box-shadow:0 0 18px rgba(184,64,44,.28),0 8px 24px -12px rgba(0,0,0,.8);
+}
+
+/* ══════════════════════ 16. 列表行 / 键值 / 日志 ══════════════════════ */
+.kv{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  min-height:48px;padding:8px 0;
+  border-bottom:1px dashed var(--rule);
+}
+.kv:last-child{border-bottom:none}
+.kv-k{font-size:var(--fs-row);color:var(--muted);letter-spacing:.06em;flex:0 1 auto;min-width:0;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv-v{font-size:var(--fs-row);font-weight:600;color:var(--ink);text-align:right;max-width:60%;
+      min-width:0;word-break:break-all;letter-spacing:.04em}
+
+/* ── 里程统计卡（行程页 / 能耗卡）：数字用宋体大字，标签散排小字 ──
+   3.18.2 起统一到字号阶梯，数字取最大一级，做成「碑刻上的字」的分量。 */
+.card.stat{
+  text-align:center;
+  padding:22px 14px 20px;
+  margin-bottom:0;
+}
+.stat-v{
+  font-family:var(--font-title);
+  font-size:var(--fs-num);
+  font-weight:600;line-height:1.04;
+  color:var(--ink);
+  letter-spacing:.02em;
+  font-variant-numeric:tabular-nums;
+  transition:color .3s var(--ease-ink);
+}
+.stat-v.long{font-size:var(--fs-h);line-height:1.28}
+.stat-k{
+  font-size:var(--fs-sm);
+  color:var(--muted);
+  margin-top:9px;letter-spacing:.16em;
+}
+/* 小卡只留左上朱角，右下折角省掉（格子太密，多一笔就碎） */
+.card.stat::after{display:none}
+
+.fld{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 0;border-bottom:1px dashed var(--rule);
+}
+.fld:last-of-type{border-bottom:none}
+.fld > span{
+  flex:none;width:92px;font-size:var(--fs-row);color:var(--muted);letter-spacing:.05em;
+}
+.fld input,.fld select{flex:1;min-width:0}
+
+.log{
+  background:var(--sheet-2);
+  border:var(--line-w) solid var(--rule);
+  border-radius:2px;
+  padding:14px;
+  font-family:ui-monospace,"Cascadia Code",monospace;
+  font-size:11.5px;line-height:1.85;color:var(--muted);
+  max-height:240px;overflow-y:auto;
+  white-space:pre-wrap;word-break:break-all;
+  margin:0;
+  -webkit-user-select:text;user-select:text;
+}
+.log.chg{
+  font-family:var(--font-body);
+  font-size:13.5px;line-height:1.9;letter-spacing:.03em;
+  white-space:normal;word-break:normal;
+  max-height:44vh;padding:16px 16px 8px;
+}
+.chg-ver{
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--font-title);font-size:15px;font-weight:600;letter-spacing:.1em;
+  color:var(--ink);margin-bottom:6px;
+}
+.hint{font-size:12.5px;color:var(--sub);margin-top:12px;line-height:1.7;letter-spacing:.04em}
+.hint.ok{color:var(--ok)} .hint.err{color:var(--danger)}
+
+/* ══════════════════════ 17. 动效 ══════════════════════ */
+@keyframes cardRise{
+  from{opacity:0;transform:translateY(8px) scale(.995)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+/* 亮版：墨晕舒展（带模糊消退）；暗版：微光浮现（带朱晕） */
+@keyframes pageInk{
+  from{opacity:0;transform:translateY(10px);filter:blur(3px)}
+  to{opacity:1;transform:translateY(0);filter:blur(0)}
+}
+@keyframes pageGlow{
+  from{opacity:0;transform:translateY(6px) scale(.994)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+html[data-theme="light"] .page.active{animation:pageInk .42s var(--ease-ink) both}
+html[data-theme="dark"] .page.active{animation:pageGlow .46s var(--ease-ink) both}
+
+@keyframes inkSpread{
+  from{width:0;opacity:0}
+  to{width:20px;opacity:1}
+}
+@keyframes veilIn{from{opacity:0}to{opacity:1}}
+@keyframes scrollOut{
+  from{opacity:0;transform:translateY(14px) scale(.97)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes toastUp{
+  from{opacity:0;transform:translate(-50%,10px)}
+  to{opacity:1;transform:translate(-50%,0)}
+}
+/* 卡片错峰：不是匀速依次淡入，而是带一点随机感（不同延迟） */
+.page.active > *{animation-delay:0s}
+.page.active > *:nth-child(1){animation-delay:.01s}
+.page.active > *:nth-child(2){animation-delay:.05s}
+.page.active > *:nth-child(3){animation-delay:.08s}
+.page.active > *:nth-child(4){animation-delay:.13s}
+.page.active > *:nth-child(5){animation-delay:.16s}
+.page.active > *:nth-child(6){animation-delay:.21s}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+
+/* ══════════════════════ 18. 版本行 ══════════════════════ */
+#appVer{
+  font-family:var(--font-body) !important;
+  font-size:var(--fs-fine) !important;
+  letter-spacing:.18em !important;
+  color:var(--sub) !important;
+  padding:6px 0 8px !important;
+  background:var(--paper-2) !important;
+  border-top:1px solid var(--rule) !important;
+  text-align:center;
+}
+
+/* ══════════════════════ 19. 大屏（车机横屏）兜底 ══════════════════════ */
+@media (min-width:900px){
+  .app{
+    display:grid;
+    grid-template-columns:108px minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr) auto;
+    grid-template-areas:"nav top" "nav content" "nav ver";
+  }
+  .topbar{grid-area:top;padding:20px 32px 16px}
+  .content{grid-area:content;padding:24px 32px 32px;columns:auto}
+  #appVer{grid-area:ver}
+  .navbar{
+    grid-area:nav;
+    display:flex;flex-direction:column;justify-content:flex-start;gap:8px;
+    padding:16px 12px;border-top:none;border-right:1px solid var(--rule);
+  }
+  .nav-item{width:88px;height:88px;min-height:88px}
+  .nav-item svg{width:26px;height:26px}
+  .nav-item.active::after{bottom:8px}
+  .page.active{
+    display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr);
+    gap:16px;align-items:start;
+  }
+  .page.active > .hero{grid-column:1 / -1}
+  /* ★ 3.18.2：分组题（车控 / 车况详情）在 2 列网格里会单独掉进左列，
+       而它的内容跑到右列 —— 标题和内容被山水隔开，读起来是断的。
+       这里让「题 + 紧随其后的内容」横跨整行，顺序就顺了。 */
+  .page.active > .sec-title{grid-column:1 / -1;margin:18px 0 10px}
+  .page.active > .sec-title + .grid4,
+  .page.active > .sec-title + .grid5,
+  .page.active > .sec-title + .card{grid-column:1 / -1}
+  /* 车控键横跨整行时不准被拉成 340px 的扁条：改为自适应等分，
+     一行排完，每枚约 170px —— 车机上手指够得着，也不再空。 */
+  .page.active > .sec-title + .grid4{
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  }
+  .page.active > .sec-title + .grid5{
+    grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+  }
+  .card{margin-bottom:0}
+  .hero-body{padding:24px 50% 20px 32px;
+    background:linear-gradient(100deg,rgba(18,14,10,.96) 0%,rgba(18,14,10,.92) 40%,rgba(18,14,10,.55) 58%,rgba(18,14,10,0) 80%);}
+  .ctl{min-height:104px}
+  .ctl-svg{width:34px;height:34px}
+  #page-settings.active,#page-account.active,#page-trips.active{display:block;columns:2;column-gap:16px}
+  /* ★ 3.18.2：行程页的里程四卡是整页的"头"，必须横跨两栏；
+       否则跟着 columns 流动会被挤进左栏，右栏的「本地采样记录」反倒在上面。 */
+  #page-trips.active > #tripStats{
+    column-span:all;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    margin-bottom:18px;
+  }
+  /* 分组题也要横跨：否则「本地采样记录」留在左栏，它那张卡却流到右栏，
+     标题和内容又是分家的。break-after:avoid 保证标题不和它的卡被拆开。 */
+  #page-trips.active > .sec-title{
+    column-span:all;break-after:avoid;margin:0 0 10px;
+  }
+  #page-settings.active > .card,#page-account.active > .card,#page-trips.active > .card{
+    break-inside:avoid;margin:0 0 16px;
+  }
+}
+
+/* ══════════════════════ 20. 压平 styles.css 的高权重残留 ══════════════════════
+   styles.css 有一批「带容器前缀」的规则（.grid5 .ctl{...border-radius:15px}、
+   .pill{radius:18px}、html[data-theme="light"] .hero / .pill …），权重 (0,2,x)
+   高于本文件的单类选择器。古风体系要的是**方角、纸面、墨字**，所以在这里
+   用同等权重、且更晚出现的方式统一收回，不做 !important 滥用。 */
+
+/* ── 20.1 圆角：器物一律方角（只留 2~3px 的手工感倒角） ── */
+html[data-theme] .grid4 .ctl,
+html[data-theme] .grid5 .ctl,
+html[data-theme] .grid2 .ctl{border-radius:var(--radius)}
+html[data-theme] .pill{border-radius:2px}
+html[data-theme] .hero-plate{border-radius:2px;padding:3px 10px}
+html[data-theme] .kv:active{border-radius:0}
+
+/* ── 20.2 亮版车辆卡：宣纸雾 + 墨字（不再用白纱 + 白字） ──
+   浅色主题的底图是明亮白棚照，直接压白纱会「糊成一片」；
+   改成压一层**宣纸色的雾**，字用浓墨 —— 水墨味出来，可读性也过 4.5:1。 */
+html[data-theme="light"] .hero{
+  --txt:#241F19; --muted:#4E4638; --sub:#6F6350;
+  --line:rgba(36,31,25,.16);
+  --ok:#2E6B4A; --ok-bg:rgba(46,107,74,.12); --ok-line:rgba(46,107,74,.34);
+  --warn:#96701A; --warn-bg:rgba(150,112,26,.12); --warn-line:rgba(150,112,26,.34);
+}
+html[data-theme="light"] .hero-bg{background:linear-gradient(160deg,#E9DFC8,#D9CCB0)}
+html[data-theme="light"] .hero-bg::after{
+  background:
+    /* ① 左侧：浓一点的纸雾，给车名 / 车牌 / 胶囊干净的底 */
+    linear-gradient(100deg,rgba(239,230,210,.94) 0%,rgba(239,230,210,.74) 28%,rgba(239,230,210,.08) 52%,rgba(239,230,210,0) 70%),
+    /* ② 底部：一条横向纸带，把四个指标数字下面的车漆压干净 */
+    linear-gradient(0deg,rgba(243,235,217,.92) 0%,rgba(243,235,217,.72) 30%,
+                   rgba(243,235,217,.28) 52%,rgba(243,235,217,0) 76%),
+    /* ③ 暗角：白车压在米白底上会「化掉」，四角收一点墨，轮廓就出来了 */
+    radial-gradient(ellipse 74% 96% at 72% 44%,rgba(88,72,44,0) 34%,rgba(88,72,44,.16) 100%);
+}
+html[data-theme="light"] .hero-body{
+  background:linear-gradient(180deg,rgba(239,230,210,.10) 0%,rgba(239,230,210,.55) 44%,rgba(243,235,217,.96) 100%);
+}
+html[data-theme="light"] .hero-name{color:#241F19;text-shadow:none}
+html[data-theme="light"] .hero-plate{
+  background:rgba(46,107,91,.14);color:#1E5445;border:1px solid rgba(46,107,91,.42);
+}
+/* 胶囊：亮版放在明亮车身上 → 一律深墨底、纸白字（与整体墨色呼应，不是玻璃感） */
+html[data-theme="light"] .pill{
+  background:rgba(28,23,17,.84);
+  border:1px solid rgba(240,232,214,.26);
+  color:#EFE6D2;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+html[data-theme="light"] .pill i{background:#B8AA8E}
+html[data-theme="light"] .hero-metric{border-top:1px solid rgba(36,31,25,.16)}
+html[data-theme="light"] .hm-item + .hm-item::before{
+  background:linear-gradient(180deg,transparent,rgba(36,31,25,.22),transparent);
+}
+html[data-theme="light"] .hm-val{color:#241F19}
+html[data-theme="light"] .hm-val em{color:#6F6350}
+html[data-theme="light"] .hm-key{color:#5C5343}
+html[data-theme="light"] .ac-live{color:#4E4638;border-top:1px solid rgba(36,31,25,.16)}
+html[data-theme="light"] .ac-live em{color:#6F6350}
+html[data-theme="light"] .hero-name.holding{opacity:.7}
+
+/* ── 20.3 暗版车辆卡：石面压边，金色指标（与亮版完全异构） ── */
+html[data-theme="dark"] .hero{border:1px solid var(--rule-2)}
+html[data-theme="dark"] .pill{
+  background:rgba(10,8,6,.86);border:1px solid rgba(201,161,90,.28);color:#E8DDC6;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+html[data-theme="dark"] .hm-val{color:#EFE4CC}
+html[data-theme="dark"] .hm-key{color:#A2937A}
+
+/* ── 20.4 次要文字：hint / 小字一律不许掉到 4.5:1 以下 ── */
+html[data-theme] .hint{color:var(--ink-3)}
+html[data-theme] .tb-sub{color:var(--muted)}
+html[data-theme] .nav-item{color:var(--ink-3);font-size:12px}
+html[data-theme="light"] .nav-item.active{color:#276052}
+/* 暗版：字用暗金（朱砂留给下面那道短横，红字在玄石上只有 3.4:1，不够读） */
+html[data-theme="dark"] .nav-item.active{color:var(--teal)}
+
+/* ── 20.5 描边类图标必须空心（CSS 的 svg{fill:currentColor} 会盖掉 fill="none" 属性） ── */
+svg[stroke]{fill:none}
+
+/* ── 20.6 车辆卡胶囊：styles.css 有一条 html[data-theme="light"] .pill-row .pill（0,3,1），
+      比本文件的 .pill 更高，必须用同权重收回 —— 亮版深墨底纸白字、暗版玄石底暗金字 ── */
+html[data-theme="light"] .pill-row .pill{
+  background:rgba(28,23,17,.86);
+  border:1px solid rgba(240,232,214,.26);
+  box-shadow:none;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  color:#EFE6D2;
+}
+html[data-theme="dark"] .pill-row .pill{
+  background:rgba(10,8,6,.88);
+  border:1px solid rgba(201,161,90,.30);
+  box-shadow:none;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  color:#E8DDC6;
+}
+
+/* ── 20.7 通道/状态小签（chan-tag）：竹签样式，不用圆角胶囊 ── */
+.chan-tag{
+  font-family:var(--font-kai);font-size:11.5px;letter-spacing:.1em;
+  padding:2px 8px;margin-left:8px;
+  color:var(--muted);
+  background:transparent;
+  border:1px dashed var(--rule-2);
+  border-radius:1px;
+  white-space:nowrap;
+}
+
+/* ══════════════════════ 21. 竖屏版式修订（第二轮自检） ══════════════════════ */
+
+/* ── 21.1 车辆卡状态胶囊：竖屏下挪到卡片顶部单独一行 ──
+   styles.css 把它绝对定位在右上角、与车名同一行；竖屏 390dp 上车名一长就撞上。
+   改成「题签行」：整行排在车名上方，左对齐，永远不会压字。
+   车机横屏（≥900px）再切回右上角浮动。 */
+.hero > .pill-row{
+  position:relative;top:auto;right:auto;
+  display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;
+  gap:6px;max-width:none;
+  margin:14px 14px 0;
+  padding:0;pointer-events:none;
+  z-index:5;
+}
+.hero-body{padding-top:10px}
+
+/* ── 21.2 器物键面上铺一层纸纹/石纹，别是纯色塑料片 ── */
+.ctl{
+  background-image:var(--tex-card);
+  background-size:600px 600px;
+}
+html[data-theme="light"] .ctl::before{
+  background:linear-gradient(145deg,rgba(255,252,244,.16),transparent 52%);
+}
+
+/* ── 21.3 暗版车辆卡：石底压得更沉，车照不当主视觉 ── */
+html[data-theme="dark"] .hero-bg::after{
+  background:
+    linear-gradient(100deg,rgba(12,9,6,.96) 0%,rgba(12,9,6,.86) 44%,rgba(12,9,6,.46) 100%),
+    radial-gradient(70% 44% at 24% 112%,rgba(6,5,4,.9),transparent 72%);
+}
+html[data-theme="dark"] .hero-body{
+  background:linear-gradient(180deg,rgba(10,8,6,.30) 0%,rgba(10,8,6,.66) 46%,rgba(10,8,6,.94) 100%);
+}
+
+/* 车机横屏：胶囊回到右上角浮动（大屏上车名一侧留白足够） */
+@media (min-width:900px){
+  .hero > .pill-row{
+    position:absolute;top:14px;right:14px;margin:0;
+    justify-content:flex-end;max-width:60%;
+  }
+  .hero-body{padding-top:24px}
+}
+
+/* ══════════════════════ 22. 小控件逐个收口（第二轮审计清单） ══════════════════════
+   审计脚本（圆角≥6px / 旧蓝底色 / 大模糊投影）扫出来的残留：
+     · .nav-item 12px 圆角      → 导航格不该是圆角卡片
+     · .scope-legend .lg 999px  → 胶囊图例（还带 MD 蓝底）
+     · .lstep 999px             → 锁车步骤片
+     · .sec-link 999px + 蓝底   → 「打开示波器」入口
+     · .seg-btn / .chg-dl 8~9px → 分段钮 / 更新日志按钮
+     · .tune-tip.sec-tip 9px + rgba(25,118,210,.06) → MD 蓝提示条
+     · select/.mc-sel 12px      → 下拉槽
+     · .chip.active 蓝色光晕
+   全部改成方角 + 纸/石底 + 墨字；一处不用 !important。 */
+
+html[data-theme] .nav-item{border-radius:0}
+
+/* 图例 / 步骤片 / 入口签：统一「竹签」——1px 实边、纸底、字数不折行 */
+html[data-theme] .scope-legend .lg,
+html[data-theme] .lstep,
+html[data-theme] .sec-link{
+  border-radius:1px;
+  background:var(--sheet-2);
+  border:1px solid var(--rule);
+  color:var(--muted);
+  box-shadow:none;
+}
+html[data-theme] .scope-legend .lg{
+  padding:4px 6px;font-size:10.5px;letter-spacing:.02em;
+}
+html[data-theme] .lstep{padding:6px 10px;font-size:12.5px}
+html[data-theme] .lstep input[type="checkbox"]{width:18px;height:18px}
+html[data-theme] .sec-link{
+  border-style:dashed;
+  color:var(--teal);border-color:var(--teal);
+  background:transparent;
+  letter-spacing:.08em;font-family:var(--font-body);
+}
+html[data-theme="dark"] .sec-link{color:var(--teal);border-color:var(--teal)}
+
+/* 分段钮 / 小按钮 */
+html[data-theme] .seg-btn,
+html[data-theme] .chg-dl{
+  border-radius:2px;
+  background:var(--sheet-2);
+  border:1px solid var(--rule);
+  color:var(--muted);
+  font-family:var(--font-body);
+  letter-spacing:.06em;
+}
+html[data-theme] .seg-btn.on{
+  background:var(--teal);
+  border-color:var(--teal);
+  color:#F6F1E4;
+}
+html[data-theme="dark"] .seg-btn.on{
+  background:linear-gradient(180deg,#A83524,#7E2718);
+  border-color:#D45B42;color:#F2E6D2;
+}
+
+/* 提示条：改成古书「案语」——左侧一道朱线 + 纸背底，不做圆角蓝条 */
+html[data-theme] .tune-tip,
+html[data-theme] .tune-tip.sec-tip{
+  border-radius:0;
+  background:var(--paper-2);
+  border:none;
+  border-left:2px solid var(--seal);
+  padding:10px 12px;
+  font-family:var(--font-kai);
+  font-size:12.5px;line-height:1.75;
+  color:var(--muted);
+  box-shadow:none;
+}
+html[data-theme="dark"] .tune-tip,
+html[data-theme="dark"] .tune-tip.sec-tip{
+  background:var(--sheet-2);
+  border-left-color:var(--seal);
+}
+html[data-theme] .tune-sec-t{
+  font-family:var(--font-title);
+  letter-spacing:.16em;color:var(--ink);
+}
+html[data-theme] .tune-sec-t.tune-sub{color:var(--muted)}
+
+/* 下拉槽：抹掉 12px 圆角（styles.css 里有更高权重的 12px） */
+html[data-theme] select,
+html[data-theme] select.mc-sel,
+html[data-theme] .mc-sel{border-radius:2px}
+
+/* 选中 chip 的蓝色光晕 */
+html[data-theme] .chip.active{box-shadow:none}
+
+/* 示波器画布底盘：亮版=淡墨格宣纸，暗版=砚池 */
+html[data-theme="light"] .scope-chart{
+  background:var(--sheet-2);
+  border:1px solid var(--rule);
+  border-radius:2px;
+  padding:4px;
+  box-shadow:inset 0 1px 3px rgba(80,62,36,.14);
+}
+html[data-theme="dark"] .scope-chart{
+  background:#0B0906;
+  border:1px solid var(--rule-2);
+  border-radius:2px;
+  padding:4px;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.8);
+}
+
+/* ── 22.1 开关：关态要能一眼看出「这是一枚可拨的方纽」，不是两个色块 ── */
+html[data-theme="light"] .switch{
+  background:var(--paper-3);
+  border-color:var(--rule-2);
+  box-shadow:inset 0 2px 4px rgba(80,62,36,.22);
+}
+html[data-theme="light"] .switch i{
+  background:linear-gradient(160deg,#FFFDF7,var(--sheet));
+  border-color:var(--rule-2);
+  box-shadow:0 1px 2px rgba(80,62,36,.35), inset 0 0 0 1px rgba(255,255,255,.6);
+}
+html[data-theme="dark"] .switch{background:#100D0A;border-color:var(--rule-2)}
+html[data-theme="dark"] .switch i{
+  background:linear-gradient(160deg,#4E4536,#2C251C);
+  border-color:#5B4C3A;
+}
+html[data-theme="dark"] .switch.on i{
+  background:linear-gradient(160deg,#D45B42,#8F2E1E);
+  border-color:#E0765C;
+}
+
+/* ══════════════════════ 23. 空调滑轨：把彩虹温度带换成「青—墨—朱」 ══════════════════════
+   styles.css 的 #acTemp 轨道是 蓝→绿→黄→红 的仪表盘彩虹，
+   在素笺/玄石底色上非常出戏。改成古法色阶：
+     亮版 冷=青徽(#3F8574) 中=淡墨(#8A7E69) 热=朱印(#A63B2A)
+     暗版 冷=青灰(#6E8F86) 中=暗金(#C9A15A) 热=朱砂(#B8402C)
+   轨道高度保持 8px、thumb 的 -10px 定标不动（那是量出来的居中值）。 */
+html[data-theme="light"] #acTemp::-webkit-slider-runnable-track{
+  height:8px;border-radius:1px;
+  border:1px solid var(--rule-2);
+  background:linear-gradient(90deg,#3F8574 0%,#7FA093 34%,#B3A583 58%,#C08A5E 76%,#A63B2A 100%);
+  box-shadow:inset 0 1px 2px rgba(80,62,36,.22);
+}
+html[data-theme="dark"] #acTemp::-webkit-slider-runnable-track{
+  height:8px;border-radius:1px;
+  border:1px solid var(--rule-2);
+  background:linear-gradient(90deg,#4C7C72 0%,#6E8F86 30%,#9C7B3C 58%,#B4703A 78%,#B8402C 100%);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.72);
+}
+html[data-theme="light"] #acWind::-webkit-slider-runnable-track{
+  height:8px;border-radius:1px;
+  border:1px solid var(--rule-2);
+  background:linear-gradient(90deg,rgba(46,107,91,.12) 0%,rgba(46,107,91,.65) 62%,#2E6B5B 100%);
+  box-shadow:inset 0 1px 2px rgba(80,62,36,.22);
+}
+html[data-theme="dark"] #acWind::-webkit-slider-runnable-track{
+  height:8px;border-radius:1px;
+  border:1px solid var(--rule-2);
+  background:linear-gradient(90deg,rgba(201,161,90,.12) 0%,rgba(201,161,90,.62) 62%,#C9A15A 100%);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.72);
+}
+/* thumb：方玉一枚，别用圆片 */
+html[data-theme="light"] #acTemp::-webkit-slider-thumb,
+html[data-theme="light"] #acWind::-webkit-slider-thumb{
+  width:22px;height:22px;border-radius:1px;
+  background:linear-gradient(160deg,#FFFDF7,var(--paper-2));
+  border:1.5px solid var(--ink-2);
+  box-shadow:0 1px 3px rgba(80,62,36,.45);
+}
+html[data-theme="dark"] #acTemp::-webkit-slider-thumb,
+html[data-theme="dark"] #acWind::-webkit-slider-thumb{
+  width:22px;height:22px;border-radius:1px;
+  background:linear-gradient(160deg,#4E4536,#241E17);
+  border:1.5px solid #C9A15A;
+  box-shadow:0 0 8px rgba(201,161,90,.35),0 1px 3px rgba(0,0,0,.8);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   24. 收口 · 蓝白塑料残留（实测截图暴露：卡片 #FFF→#EFF3FA 渐变、图标彩虹）
+   ──────────────────────────────────────────────────────────────────────────
+   styles.css 的 html[data-theme="light"] .ctl 权重为 (0,2,1)，单类选择器压不住，
+   必须用同权重 + 文件更靠后来接管。图标同理，十个 data-act 逐个改写。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 24.1 卡面：去掉 #FFFFFF→#EFF3FA 的冷白，换宣纸纤维 + 米黄斜照 */
+html[data-theme="light"] .ctl{
+  background-color:#FBF5E7;
+  background-image:var(--tex-card), linear-gradient(168deg,#FCF7EA 0%,#F1E7D2 100%);
+  background-size:600px 600px, auto;
+  border:1px solid var(--rule);
+  border-radius:var(--radius);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.72) inset,
+    0 1px 0 rgba(80,62,36,.06),
+    0 4px 10px -7px rgba(80,62,36,.55);
+}
+html[data-theme="light"] .ctl::before{display:none}
+html[data-theme="light"] .ctl:active{
+  background-image:var(--tex-card), linear-gradient(168deg,#F0E6D0,#E4D8BE);
+  box-shadow:inset 0 2px 6px rgba(80,62,36,.22);
+  transform:scale(.972);
+}
+
+/* 24.2 暗版：石面 + 岩纹，按下如凿击 */
+html[data-theme="dark"] .ctl{
+  background-color:#1A1611;
+  background-image:var(--tex-card), linear-gradient(168deg,#221C15 0%,#14110C 100%);
+  background-size:700px 700px, auto;
+  border:1px solid #332B22;
+  border-radius:var(--radius);
+  box-shadow:
+    inset 0 1px 0 rgba(232,221,198,.05),
+    inset 0 -1px 0 rgba(0,0,0,.6),
+    0 2px 6px rgba(0,0,0,.45);
+}
+html[data-theme="dark"] .ctl:active{
+  background-image:var(--tex-card), linear-gradient(168deg,#100D09,#1E1912);
+  box-shadow:inset 0 3px 8px rgba(0,0,0,.85), inset 0 0 0 1px rgba(184,64,44,.30);
+  transform:scale(.972);
+}
+
+/* 24.3 图标：毛笔/凿痕滤镜取代 drop-shadow，去掉「App 图标」味 */
+.ctl .ctl-svg{
+  filter:var(--stroke-icon);
+  stroke-width:1.45;
+}
+html[data-theme="dark"] .ctl .ctl-svg{stroke-width:1.55}
+
+/* 24.4 语义色收进古风五色（青/赤/黄/白/黑 + 赭黛），不再高饱和彩虹 */
+/* 亮版 */
+html[data-theme="light"] .ctl[data-act="unlock"]     .ctl-svg{color:#2E6B5B}
+html[data-theme="light"] .ctl[data-act="lock"]       .ctl-svg{color:#3A5A74}
+html[data-theme="light"] .ctl[data-act="trunk_open"] .ctl-svg{color:#9A6A26}
+html[data-theme="light"] .ctl[data-act="trunk_close"].ctl-svg{color:#7C531C}
+html[data-theme="light"] .ctl[data-act="air_vent"]   .ctl-svg{color:#2F7A72}
+html[data-theme="light"] .ctl[data-act="windows"]    .ctl-svg{color:#55676F}
+html[data-theme="light"] .ctl[data-act="flash"]      .ctl-svg{color:#A9832A}
+html[data-theme="light"] .ctl[data-act="find"]       .ctl-svg{color:#47698A}
+html[data-theme="light"] .ctl[data-act="start"]      .ctl-svg{color:#A63B2A}
+html[data-theme="light"] .ctl[data-act="off"]        .ctl-svg{color:#6B6157}
+/* 暗版（石上石粉，色更亮一档） */
+html[data-theme="dark"] .ctl[data-act="unlock"]      .ctl-svg{color:#7FBFA6}
+html[data-theme="dark"] .ctl[data-act="lock"]        .ctl-svg{color:#8FA9C0}
+html[data-theme="dark"] .ctl[data-act="trunk_open"]  .ctl-svg{color:#C9A15A}
+html[data-theme="dark"] .ctl[data-act="trunk_close"] .ctl-svg{color:#A8843F}
+html[data-theme="dark"] .ctl[data-act="air_vent"]    .ctl-svg{color:#6FB3A8}
+html[data-theme="dark"] .ctl[data-act="windows"]     .ctl-svg{color:#93A0A6}
+html[data-theme="dark"] .ctl[data-act="flash"]       .ctl-svg{color:#D9B457}
+html[data-theme="dark"] .ctl[data-act="find"]        .ctl-svg{color:#86A8C4}
+html[data-theme="dark"] .ctl[data-act="start"]       .ctl-svg{color:#D2603F}
+html[data-theme="dark"] .ctl[data-act="off"]         .ctl-svg{color:#9A8F7E}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   25. 细节收口：目字开关 / 示波器绢格 / 空态
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 25.1 密码「显示 / 隐藏」：把 👁 换成「目」字，做成一枚小方押 */
+.pin-eye{
+  width:22px;height:22px;right:9px;
+  font-family:var(--font-song);font-size:13px;font-weight:600;
+  color:var(--muted);
+  border:1px solid var(--rule-2);
+  border-radius:1px;
+  background:var(--paper-2);
+  letter-spacing:0;
+  transition:color .18s var(--ease-ink),border-color .18s,background .18s;
+}
+.pin-eye.on{
+  color:#F6EFE0;
+  background:var(--teal);
+  border-color:var(--teal);
+}
+html[data-theme="dark"] .pin-eye{background:#191410;border-color:#3E342A}
+html[data-theme="dark"] .pin-eye.on{color:#12100C;background:var(--teal);border-color:var(--teal)}
+
+/* 25.2 示波器底盘。
+   ⚠ 这里**不铺网格**：网格/刻度由 canvas 自己画（app.js 的 scopeDraw，
+   Y 档随画布高度自适应），CSS 再叠一层必然错位。
+   亮版 = 纸底 + 纸纤维；暗版 = 砚池（近黑 + 内缩暗角，不做岩石斑驳，
+   否则近黑底上会糊成一块脏斑）。 */
+html[data-theme="light"] .scope-chart{
+  background-color:#EDE3CC;
+  background-image:var(--tex-fiber);
+  background-size:600px 600px;
+  box-shadow:inset 0 1px 4px rgba(80,62,36,.16);
+}
+html[data-theme="dark"] .scope-chart{
+  background-color:#0C0906;
+  background-image:none;
+  box-shadow:
+    inset 0 1px 0 rgba(232,221,198,.05),
+    inset 0 0 26px rgba(0,0,0,.92);
+}
+
+/* 25.3 图例色样跟随 canvas 新配色（青 / 竹青 / 赭），不再用 MD 蓝绿橙 */
+html[data-theme] .scope-legend .lg-raw i{border-top-color:rgba(126,110,86,.55)}
+html[data-theme] .scope-legend .lg-sig i{border-top-color:rgba(70,150,130,.95)}
+html[data-theme] .scope-legend .lg-enter i{border-top-color:rgba(122,168,110,.95)}
+html[data-theme] .scope-legend .lg-exit i{border-top-color:rgba(176,132,58,.95)}
+/* 注：不画「十字准心中线」—— .scope-chart 里除了 canvas 还有图例，
+   50% 不在波形中心，画上去反而是错位的假刻度。留白即可。 */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   26. 车辆卡车照调色：让它落在各自的色域里，而不是一张"彩色照片"贴在纸上
+   ──────────────────────────────────────────────────────────────────────────
+   亮版 = 淡墨写生（去饱和 + 偏黄褐）；
+   暗版 = 夜色石拓（压暗 + 留一点暖）。
+   只加 filter，不碰 transform / object-position（那是用户换图用的）。
+   ══════════════════════════════════════════════════════════════════════════ */
+html[data-theme="light"] .hero-bg-img{
+  filter:sepia(.40) saturate(.60) brightness(1.05) contrast(.95);
+}
+html[data-theme="dark"] .hero-bg-img{
+  filter:sepia(.20) saturate(.55) brightness(.74) contrast(1.06);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   27. 弹层收口：步骤序号改方印 / 音效项去蓝底 / 暗版弹层换细纹
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 27.1 授权步骤序号：圆形徽章 = MD 味，改成一枚朱印方押 */
+.wq-step i{
+  flex:0 0 20px;height:20px;border-radius:1px;
+  background:var(--seal);color:#F7F0E1;
+  font-family:var(--font-song);font-size:11.5px;font-weight:600;
+  letter-spacing:0;margin-top:3px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+}
+html[data-theme="dark"] .wq-step i{color:#14100B}
+
+/* 27.2 音效选择项：圆角 11~12px + 蓝底选中，全部换成竹签 / 青徽 */
+.snd-item{
+  border-radius:2px;
+  background:var(--sheet-2);
+  border:1px solid var(--rule);
+  font-family:var(--font-body);
+  transition:color .18s var(--ease-ink),border-color .18s,background .18s;
+}
+.snd-item.active,
+.snd-item.on{
+  border-color:var(--teal);
+  color:var(--seal);
+  background:var(--teal-soft);
+  box-shadow:inset 0 0 0 1px rgba(46,107,91,.28);
+}
+html[data-theme="dark"] .snd-item.active,
+html[data-theme="dark"] .snd-item.on{
+  color:var(--teal);
+  border-color:var(--teal-2);
+  background:rgba(201,161,90,.10);
+  box-shadow:inset 0 0 0 1px rgba(201,161,90,.22);
+}
+.snd-play{border-radius:1px!important;width:24px!important;height:24px!important}
+
+/* 27.3 暗版弹层：patina 是大尺度斑块，在近黑底上像霉斑 → 换细颗粒纤维 */
+html[data-theme="dark"] .sheet-card{
+  background-image:var(--tex-fiber);
+  background-size:600px 600px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   28. 暗版纹理换源
+   ──────────────────────────────────────────────────────────────────────────
+   原 --tex-patina 是偏绿的铜锈色（0.20,0.44,0.36），叠在近黑石面上像一片霉斑，
+   实测截图里整卡发绿、脏。改成**中性暖砂粒**（高频、低不透明度），
+   读起来是石面细砂，不是长了东西。
+   ══════════════════════════════════════════════════════════════════════════ */
+html[data-theme="dark"]{
+  --tex-card:url("data:image/svg+xml;charset=utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='700'%20height='700'%3E%3Cfilter%20id='g'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.62'%20numOctaves='4'%20seed='33'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20type='matrix'%20values='0%200%200%200%200.80%200%200%200%200%200.72%200%200%200%200%200.56%200%200%200%200.055%200'/%3E%3C/filter%3E%3Crect%20width='700'%20height='700'%20filter='url(%23g)'/%3E%3C/svg%3E");
+}

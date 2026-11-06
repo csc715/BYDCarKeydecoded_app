@@ -1,0 +1,2870 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="utf-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+
+<title>BYD 控车</title>
+
+<link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+
+<svg style="display: none">
+  <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox">
+    <feTurbulence type="fractalNoise" baseFrequency="0.001 0.005" numOctaves="1" seed="17" result="turbulence" />
+    <feComponentTransfer in="turbulence" result="mapped">
+      <feFuncR type="gamma" amplitude="1" exponent="10" offset="0.5" />
+      <feFuncG type="gamma" amplitude="0" exponent="1" offset="0" />
+      <feFuncB type="gamma" amplitude="0" exponent="1" offset="0.5" />
+    </feComponentTransfer>
+    <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap" />
+    <feSpecularLighting in="softMap" surfaceScale="5" specularConstant="1" specularExponent="100" lighting-color="white" result="specLight">
+      <fePointLight x="-200" y="-200" z="300" />
+    </feSpecularLighting>
+    <feComposite in="specLight" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="litImage" />
+    <!-- 注意：这里的 scale 我调小了，因为底栏比较小，用 200 会撕裂 -->
+    <feDisplacementMap in="SourceGraphic" in2="softMap" scale="50" xChannelSelector="R" yChannelSelector="G" />
+  </filter>
+</svg>
+
+<div class="app">
+
+
+
+  <!-- ═══════════ 顶栏 ═══════════ -->
+
+  <header class="topbar">
+
+    <div class="tb-left">
+
+      <div class="tb-title" id="tbTitle">BYD 控车</div>
+
+      <div class="tb-sub" id="tbSub">尚未获取车况</div>
+
+    </div>
+
+    <div class="tb-right">
+
+      <!-- ★★★ 3.20.49（乐哥 2026-10-29：「那个静音的按钮不能取消。我的意思是让它对 APP 所有的音效生效」）：
+
+           这颗按钮**保留**，但语义从「只管解锁/锁车提示音」改成**全局静音**：
+
+             · 关掉 ⇒ App 里**任何声音都不响**：按钮点击合成音、自定义按钮音、车动作完成的官方提示音（自动解锁/走远锁车/桌面卡/锁屏卡/通知欄）、
+
+               内置音效试听 —— 全部哑。通知、日志、控车本身**不受影响**。
+
+             · 打开 ⇒ 按各个按钮自己的音效配置正常播。
+
+           按钮外观完全不变（梅花印章那颗），开/关靠 `off` 类降不透明度。 -->
+
+      <button class="icon-btn" id="btnSound" title="音效总开关（关掉后 App 里所有提示音都不响）">
+
+        <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 00-2.5-4v8a4.5 4.5 0 002.5-4z"/></svg>
+
+      </button>
+
+      <button class="icon-btn" id="btnTheme" title="切换主题（深/浅/跟随系统）">
+
+        <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 109 9 7 7 0 01-9-9z"/></svg>
+
+      </button>
+
+      <!-- ★★★ 3.15.26 / 3.15.31（用户 2026-10-10）：
+
+           3.15.26：「所有的自定义设置 / 日志权限申请，放到右上角切换主题旁边…」
+
+           3.15.31：「第四个标签页不能取消。改名为账户。里面的内容 账户 小爱 操作日志。」
+
+           ⇒ 底部第 4 格恢复为「账户」（#page-account：账号 / 小爱卡片 / 操作日志）；
+
+             而低频设置（自动化 / 保活 / 关于）收在这颗 ⚙️ 进入的
+
+             #page-settings 里。再点一次 ⚙️（或点底部任一标签）即离开设置页。 -->
+
+      <button class="icon-btn" id="btnSettings" title="设置（耗电分析 / 后台保活 / 关于 / 更新日志）">
+
+        <svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10.61 5.75A6.4 6.4 0 0 1 13.39 5.75L13.46 3.73A8.4 8.4 0 0 1 16.82 5.12L15.44 6.6A6.4 6.4 0 0 1 17.4 8.56L18.88 7.18A8.4 8.4 0 0 1 20.27 10.54L18.25 10.61A6.4 6.4 0 0 1 18.25 13.39L20.27 13.46A8.4 8.4 0 0 1 18.88 16.82L17.4 15.44A6.4 6.4 0 0 1 15.44 17.4L16.82 18.88A8.4 8.4 0 0 1 13.46 20.27L13.39 18.25A6.4 6.4 0 0 1 10.61 18.25L10.54 20.27A8.4 8.4 0 0 1 7.18 18.88L8.56 17.4A6.4 6.4 0 0 1 6.6 15.44L5.12 16.82A8.4 8.4 0 0 1 3.73 13.46L5.75 13.39A6.4 6.4 0 0 1 5.75 10.61L3.73 10.54A8.4 8.4 0 0 1 5.12 7.18L6.6 8.56A6.4 6.4 0 0 1 8.56 6.6L7.18 5.12A8.4 8.4 0 0 1 10.54 3.73L10.61 5.75ZM12 8.7A3.3 3.3 0 1 1 12 15.3A3.3 3.3 0 1 1 12 8.7Z"/></svg>
+
+      </button>
+
+      <!-- ★★★ 3.14.176 → 3.14.177（用户 2026-10-08：「右上角的刷新按钮取消。
+
+           因为我们采用的是下拉刷新和自动刷新，没必要要它了。」）：顶栏「刷新」图标整块删除。
+
+           刷新入口保留两条（都在）：下拉 90px 主动刷新、控车/保存后自动刷新。 -->
+
+    </div>
+
+  </header>
+
+  <!-- ★★★ 客户需求（2026-10-29）：「报警要通知栏 + 首页警示」的**警示条**。
+       常驻在顶栏与内容之间（flex 子元素，不随内容滚动、切页也在），
+       只在有未解除报警时显示；数据源 = 原生 AlarmCenter（push 走 onAlarm，回前台走 alarmState）。 -->
+  <div class="alarm-bar" id="alarmBar" hidden>
+    <div class="ab-ico">⚠</div>
+    <div class="ab-body">
+      <div class="ab-title" id="abTitle"></div>
+      <div class="ab-detail" id="abDetail"></div>
+    </div>
+    <button class="ab-ack" id="abAck" type="button">知道了</button>
+  </div>
+
+
+
+  <main class="content" id="content">
+
+
+
+    <!-- ═══════════════════ ① 车辆 ═══════════════════ -->
+
+    <section class="page active" id="page-home">
+
+
+
+      <!-- 车辆 hero（整卡背景图 · 长按卡片换图） -->
+
+      <div class="hero card" id="heroCard" title="长按更换卡片背景图">
+
+        <!-- ★ 3.14.21 用户要求：背景图**可自定义上传，直接铺满整张卡片**
+
+             （原来是右上角 150×110 的小图框） -->
+
+        <div class="hero-bg" id="heroBg">
+
+          <!-- ★ 3.14.22 用户要求：**两张独立的背景图**（不是给暗色图加滤镜）——
+
+               暗色主题用 car-default.jpg（深色棚拍，已确认好看），
+
+               浅色主题用 car-default-light.jpg（同款车 / 同角度构图的明亮白色影棚版）。
+
+               哪张显示**完全由 CSS 按 data-theme 决定**，JS 不参与。
+
+
+
+               ★ 3.14.22 续：**每个主题各支持一张自定义图**（用户：「长按替换图片的时候
+
+               需要用户准备两张图片 一张黑色一张白色」）——
+
+               在哪个主题下长按，换的就是那个主题的图，两张互不覆盖。
+
+               `.hero-bg-default` = 内置图，`.hero-bg-user` = 用户长按传的图；
+
+               用户为某主题传了图，该主题的内置图就自动让位（见 styles.css）。 -->
+
+          <img class="hero-bg-img hero-bg-dark  hero-bg-default" id="carImgDefault"      src="car-default.jpg" alt="">
+
+          <img class="hero-bg-img hero-bg-dark  hero-bg-user"    id="carImgActualDark"   src="" alt="" style="display:none">
+
+          <img class="hero-bg-img hero-bg-light hero-bg-default" id="carImgDefaultLight" src="car-default-light.jpg" alt="">
+
+          <img class="hero-bg-img hero-bg-light hero-bg-user"    id="carImgActualLight"  src="" alt="" style="display:none">
+
+        </div>
+
+        <!-- ★ 3.14.41 用户要求：三个状态胶囊（在线 / 已锁车 / 已熄火）做成一排，
+
+             从「车牌下方」**移到整张卡片的右上角**（绝对定位，见 styles.css .pill-row）。
+
+             纯展示，pointer-events:none 不干扰长按换图。 -->
+
+        <div class="pill-row">
+
+          <span class="pill" id="pillOnline"><i></i>离线</span>
+
+          <span class="pill" id="pillLock"><i></i>--</span>
+
+          <span class="pill" id="pillEngine"><i></i>--</span>
+
+          <!-- ★★★ 3.20.1（乐哥 2026-10-24「把主页第一个卡片上面的空调状态变成窗户状态」）：
+               原「空调」胶囊改为**车窗**胶囊。id 由 pillAc → pillWin。
+               数据 windows_known / windows_open_n（车况编码 1=关 / -1=关 / 2=开）。
+               ★ 3.20.2：文案统一成 3 字「车窗开 / 车窗关」，与「云在线 / 已锁车 / 已启动」
+                 同宽，四个胶囊才对齐（原来「窗开 2」带数字会把第四个撑歪）。 -->
+
+          <span class="pill" id="pillWin"><i></i>--</span>
+
+        </div>
+
+        <div class="hero-body">
+
+          <div class="hero-info">
+
+            <div class="hero-name" id="carName">BYD 控车</div>
+
+            <div class="hero-plate" id="carPlate">—</div>
+
+          </div>
+
+          <!-- ★★★ 3.15.40：加 id 以便纯电车隐藏「油量 / 燃油续航」两格，并把该行由 4 列改 2 列。 -->
+
+          <div class="hero-metric" id="heroMetric">
+
+            <div class="hm-item">
+
+              <div class="hm-val"><span id="hmBattery">--</span><em>%</em></div>
+
+              <div class="hm-key">电量</div>
+
+            </div>
+
+            <div class="hm-item">
+
+              <div class="hm-val"><span id="hmEvRange">--</span><em>km</em></div>
+
+              <div class="hm-key">纯电续航</div>
+
+            </div>
+
+            <div class="hm-item" id="hmFuelItem">
+
+              <div class="hm-val"><span id="hmFuel">--</span><em>%</em></div>
+
+              <div class="hm-key">油量</div>
+
+            </div>
+
+            <div class="hm-item" id="hmFuelRangeItem">
+
+              <div class="hm-val"><span id="hmFuelRange">--</span><em>km</em></div>
+
+              <div class="hm-key">燃油续航</div>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- ★ 2026-09-26 用户要求：**取消独立的空调状态卡**，状态改成一行动态文字
+
+               并入第一个卡片（Hero 车辆卡）底部；左侧圆点图标一并去掉。
+
+               数据来源：车况接口的 air_run_state / main_setting_temp_new / temp_in_car。
+
+               ⚠ 车辆熄火时官方接口把这三个字段一律返回 null（实测），此时如实显示「状态未上报」，
+
+                 绝不写成「已关闭」—— 那是在编数据。
+
+               ⚠ 风量档位：该接口 110 个字段里**没有**风量，只能取本机最近一次下发的档位并明确标注。 -->
+
+          <!-- ★★★ 3.15.51（用户 2026-10-11「首页第一个卡片。左对齐是空调数据。
+
+               同一行右对齐，加一个充电数据」）：一行两栏 —— 左(#acLiveTxt)=空调、
+
+               右(#chgLive)=充电。数据源同为车况 brief（air_on / charging / charge_phase…）。 -->
+
+          <div class="ac-live" id="acLive">
+
+            <span id="acLiveTxt">状态未上报</span>
+
+            <span class="ac-chg" id="chgLive">充电 --</span>
+
+          </div>
+
+        </div>
+
+        <!-- ★ 3.14.41：「长按换图」提示已按用户要求删除（换图功能保留：长按换 / 双击还原） -->
+
+      </div>
+
+
+
+      <!-- 快捷控制 -->
+
+      <!-- ★ 2026-09-29（用户：「空调开关 链接蓝牙时候 没有蓝牙标签」）：
+
+           标题右边挂一枚**通道标签**，写明"现在点下去走的是蓝牙还是云端"。
+
+           判据由原生侧算好（WebBridge.bleState 的 channel 字段），JS 只负责显示。
+
+           · 蓝牙 —— 手机与车钥匙已连上，本地直控，不经过云端、不受风控
+
+           · 云端 —— App 直连比亚迪云下发（本地化后不再经过任何服务器） -->
+
+      <!-- ★★★ 客户需求（2026-10-29，乐哥当晚改口径）：「防误触开关加到这里，默认关闭，
+           别放在设置里面」—— 挂在「车辆控制」标题行右侧（就在通道标签后面），
+           默认**关**（点一下直接执行），要防手滑的人自己打开。
+           开关状态存 localStorage：qinl_confirm_cmd = '1' 才弹。纯前端行为，不进原生。
+
+           ⚠ id 仍是 swConfirmCmd（app.js 的 initCfm 绑的就是它），设置页那张卡已删掉，
+             不会出现两个同 id 元素。 -->
+
+      <div class="sec-title has-sw">车辆控制<span class="chan-tag" id="chanTag">通道检测中</span><span class="sw-mini" id="swConfirmCmd" role="switch" aria-checked="false" title="控车二次确认：开=点按钮先弹确认框，关=点一下直接执行"><i></i></span></div>
+
+      <!-- ★ 3.16（用户指定布局）：5×2 = 10 钮 ——
+
+           第一行：解锁 / 关车窗 / 开后备箱 / 闪灯 / 启动
+
+           第二行：锁车 / 车窗透气 / 关后备箱 / 寻车 / 熄火
+
+           熄火指令已统一为关空调（WatchCloud.CMD_TYPE：off → CLOSEAIR）。 -->
+
+      <div class="grid5">
+
+<button class="ctl" data-act="unlock">
+
+          <svg class="ctl-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="3"/><path d="M8 10.5V7.6a3.6 3.6 0 0 1 6.9-1.4"/><circle cx="12" cy="15.8" r="1.4"/></svg>
+
+          <span class="ctl-t">解锁</span>
+
+        </button>
+
+<button class="ctl" data-act="windows">
+
+          <svg class="ctl-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 8h11v8H4.5z"/><path d="M6.5 12h13"/></svg>
+
+          <span class="ctl-t">关车窗</span>
+
+        </button>
+
+<!-- ★★★ 3.15.68（用户 2026-10-11）：**取消** 3.15.62 的「一个按钮开/关两态」。
+
+             本按钮恢复为**固定「开后备箱」**（永远只发 trunk_open）。
+
+             支持电动尾门（车况字段 power_trunk=true）的车型 → 由 app.js 的 syncTrunkBtns()
+
+             把下面的**「闪灯」按钮变成「关后备箱」**（发 trunk_close）；不支持的车仍显示「闪灯」。
+
+             ⚠ 熄火按钮不动（用户明确："不能替换熄火"）。 -->
+
+        <button class="ctl" id="btnTrunk" data-act="trunk_open">
+
+          <svg class="ctl-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 15V11.3l4.4-1.2 2.4-2.7h4.4l5.2 3.5V15z"/><path d="M6 15a1.9 1.9 0 0 0 3.8 0"/><path d="M14.6 15a1.9 1.9 0 0 0 3.8 0"/><path d="M18.2 9.3 19.4 7.1 20.9 8.2"/></svg>
+
+          <span class="ctl-t">开后备箱</span>
+
+        </button>
+
+<!-- ★ 3.15.68 起的「闪灯位 = 关后备箱宿主」设计 3.15.114 起作废（关后备箱已独立成钮）——
+
+             本按钮固定「闪灯」，JS 不再按车况改写它。 -->
+
+        <button class="ctl" id="btnFlash" data-act="flash">
+
+          <svg class="ctl-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="7.2" cy="12" rx="3.4" ry="5"/><path d="M13.4 9.6h4.2"/><path d="M13.4 12h6"/><path d="M13.4 14.4h4.2"/></svg>
+
+          <span class="ctl-t">闪灯</span>
+
+        </button>
+
+<button class="ctl" data-act="start">
+
+          <svg class="ctl-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 2.6 5.6 13.4h4.9l-.9 8 7.8-10.8h-4.9l.9-8z"/></svg>
+
+          <span class="ctl-t">启动</span>
+
+        </button>
+
+<button class="ctl" data-act="lock">
+
+          <svg class="ctl-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="3"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.8" r="1.4"/></svg>
+
+          <span class="ctl-t">锁车</span>
+
+        </button>
+
+<!-- ★ 3.15.114 新增：车窗透气（留缝换气） -->
+
+        <button class="ctl" data-act="air_vent">
+
+          <svg class="ctl-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 8.5h11v7.5H4.5z"/><path d="M6.5 12.2h13"/><path d="M12 2.6v3.4"/><path d="M10.1 4.3 12 2.2l1.9 2.1"/></svg>
+
+          <span class="ctl-t">车窗透气</span>
+
+        </button>
+
+<!-- ★ 3.15.114 新增：关后备箱 —— 独立按钮，不再借闪灯位变身。
+
+             支持电动尾门（车况 power_trunk）的车型才关得上；不支持的车型点了会由云端如实报错。 -->
+
+        <button class="ctl" data-act="trunk_close">
+
+          <svg class="ctl-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 15V11.3l4.4-1.2 2.4-2.7h4.4l5.2 3.5V15z"/><path d="M6 15a1.9 1.9 0 0 0 3.8 0"/><path d="M14.6 15a1.9 1.9 0 0 0 3.8 0"/><path d="M16.9 7.2 18.6 8.9 20.3 7.2"/></svg>
+
+          <span class="ctl-t">关后备箱</span>
+
+        </button>
+
+<button class="ctl" data-act="find">
+
+          <svg class="ctl-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 16.2v-2.6c0-.3.1-.6.2-.9l1.5-3.6c.3-.7 1-1.2 1.8-1.2h4.8c.8 0 1.5.5 1.8 1.2l1.5 3.6c.1.3.2.6.2.9v2.6"/><circle cx="6" cy="16.2" r="1.7"/><circle cx="11.6" cy="16.2" r="1.7"/><path d="M17.2 9.9a4.3 4.3 0 0 1 0 5.6"/><path d="M19.6 7.3a7.7 7.7 0 0 1 0 10.8"/></svg>
+
+          <span class="ctl-t">寻车</span>
+
+        </button>
+
+<!-- ★ 3.15.114：熄火指令统一为关空调（用户拍板）—— watch 云端 VPDREMOTEPOWER
+
+             实测不可靠（code=2 繁忙 / 车况不满足），CLOSEAIR 云端认、车真执行。 -->
+
+        <button class="ctl" data-act="off" title="熄火指令已统一为关空调（云端实测最可靠）">
+
+          <svg class="ctl-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8v7.4"/><path d="M8.4 5.9a6 6 0 1 0 7.2 0"/></svg>
+
+          <span class="ctl-t">熄火</span>
+
+        </button>
+
+      </div>
+
+
+
+      <!-- 空调 -->
+
+      <div class="card ac-card">
+
+        <!-- ★ 2026-09-26 用户要求：**移除**右上角那个「切换」开关。
+
+             它在熄火时恒显示「关」（air_run_state 返回 null），一点就发开机指令，
+
+             既不符合直觉，也和下方两个按钮重复。现在模式完全由「预约时间」是否填了来决定。 -->
+
+        <div class="ac-head">
+
+          <div>
+
+            <div class="ac-title">远程空调</div>
+
+            <div class="ac-sub" id="acSub">点「开启」立即启动</div>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- （原「空调状态一览」已按用户要求挪到首页 hero 卡片下方，见页面顶部 #acLive） -->
+
+
+
+        <div class="ac-temp">
+
+          <div class="ac-temp-val"><span id="acTempVal">24</span><em>℃</em></div>
+
+          <input type="range" id="acTemp" min="16" max="30" step="1" value="24"
+
+                 class="range" aria-label="空调温度">
+
+          <div class="ac-temp-min"><span>16℃</span><span>30℃</span></div>
+
+        </div>
+
+
+
+        <!-- ★★★ 3.15.40（用户 2026-10-10）：「取消空调预约功能」—— 预约时间滑条整块删除。 -->
+
+        <div class="ac-hint" id="acBookTip" data-keep="1">立即开启，运行 N 分钟后自动停止</div>
+
+
+
+        <!-- ★ 2026-09-26 用户要求：「持续时长」必须能被设置/确定，不能让空调一直运行下去。
+
+             这一项**两种模式下都用**：
+
+               · 立即开启 → 现在就开，开够 N 分钟后自动停（云端 timeSpan）
+
+               · 预约开启 → 到点开始，开够 N 分钟后自动停
+
+             与上面的「预约时间」是两个独立参数，别混：
+
+               预约时间 = 几点**开始**；持续时长 = 开起来之后**运行多久**。 -->
+
+        <div class="ac-row">
+
+          <div class="ac-label">持续时长 <span class="ac-hint-inline">到点自动停，最长 30 分</span></div>
+
+          <div class="chips" id="chipDur">
+
+            <button class="chip" data-v="10">10分</button>
+
+            <button class="chip" data-v="15">15分</button>
+
+            <button class="chip active" data-v="20">20分</button>
+
+            <button class="chip" data-v="25">25分</button>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- ★★★ 3.15.40（用户 2026-10-10）：「取消空调风量功能」—— 风量滑轨整块删除。
+
+             风量在比亚迪协议层本就不可写（云端开空调参数集固定 5 键、蓝牙 cmd=3 帧无风量位），
+
+             该滑轨此前也只做本机记录；删除后空调只保留「直接开启」。 -->
+
+
+
+        <div class="ac-btns">
+
+          <button class="btn btn-ghost" id="btnAcOff">关闭空调</button>
+
+          <button class="btn btn-primary" id="btnAcOn">开启空调</button>
+
+        </div>
+
+
+
+        <!-- ★ 3.14.61（用户：「开空调我不需要蓝牙开启蓝牙关闭这两个按钮」）：
+
+             3.14.60 那行 ⚡ 纯蓝牙按钮已删除 —— 空调开关回归这里两个按钮，
+
+             与其余所有车控按钮同一套语义：**蓝牙优先，连不上/失败 → 自动走云端**。
+
+             通道由原生 WebBridge.cmd() 统一决定，界面不再给第二条腿。 -->
+
+
+
+        <!-- ★★★ 3.15.40（用户 2026-10-10）：空调预约记录整块删除（随「取消空调预约功能」）。 -->
+
+      </div>
+
+
+
+      <!-- ★★★ 3.15.51（用户 2026-10-11「胎压卡片移动到车辆详情的卡片上方」）：
+
+           胎压卡从首页最底部**上移到「车况详情」卡之前** —— 一眼可见，不用滑到底。
+
+           内容一字未改（tire0..3 绑定不变）。 -->
+
+      <div class="card">
+
+        <div class="sec-inline">胎压</div>
+
+        <div class="tire-grid">
+
+          <!-- ★★★ 2026-10-02（用户：「轮胎温度去掉」）：四个卡片里的 tire-temp 行整行删除。
+
+               实测定案：比亚迪云端的 vehicleRealTime 117 个字段里只有胎压
+
+               （leftFrontTirepressure = 222 kPa 等），**没有任何胎温字段** ——
+
+               那行以前长期显示「温度未上报」，是噪音，不是我们代码算错。
+
+               胎压（tire0..3）保留。 -->
+
+          <div class="tire">
+
+            <div class="tire-pos">左前</div>
+
+            <div class="tire-val" id="tire0">--</div>
+
+          </div>
+
+          <div class="tire">
+
+            <div class="tire-pos">右前</div>
+
+            <div class="tire-val" id="tire1">--</div>
+
+          </div>
+
+          <div class="tire">
+
+            <div class="tire-pos">左后</div>
+
+            <div class="tire-val" id="tire2">--</div>
+
+          </div>
+
+          <div class="tire">
+
+            <div class="tire-pos">右后</div>
+
+            <div class="tire-val" id="tire3">--</div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- 车况详情 -->
+
+      <div class="sec-title">车况详情</div>
+
+      <div class="card">
+
+        <!-- ★★★ 2026-10-01（用户：「主界面显示『已锁车』，车门却显示『4 扇开启』」）：
+
+             原来这一行叫「车门」，绑的却是**门锁**数组（`doors[i]=true` 表示"这个门已锁"），
+
+             界面拿它当"开着"来数 ⇒ 四个门都锁着时恰好显示「4 扇开启」。数据没错，口径用错了。
+
+             现在拆成两行，各管各的：
+
+               · 车门 = 真的开/关（door_open_*；车机没上报这个字段时**整行隐藏**，不摆假数据）
+
+               · 门锁 = 已锁/未锁（doors[]，true = 已锁） -->
+
+        <div class="kv" id="kvDoorOpen" style="display:none"><span class="kv-k">车门</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvDoors"><span class="kv-k">门锁</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvWindows"><span class="kv-k">车窗</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvTrunk"><span class="kv-k">后备箱</span><span class="kv-v">--</span></div>
+
+        <!-- ★ 3.15.30：天窗 / 前备箱 —— 实测字段都在，以前没解析。有值才显示，没有整行隐藏。 -->
+
+        <div class="kv" id="kvSkylight" style="display:none"><span class="kv-k">天窗</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvForehold" style="display:none"><span class="kv-k">前备箱</span><span class="kv-v">--</span></div>
+
+        <!-- ★★★ 3.14.37：新增「启动状态」—— 服务端 brief.engine_on 一直都有，
+
+             但界面从来没有绑定过，所以用户看不到（问题1 的「缺少车辆启动状态」）。 -->
+
+        <div class="kv" id="kvPower"><span class="kv-k">启动状态</span><span class="kv-v">--</span></div>
+
+        <!-- ★★★ 3.14.58（用户：「日志里返回了很多我们界面上没显示的字段，比如车速、胎压」）：
+
+             这一批字段 brief 里**一直都有**，只是界面从来没绑过，所以看不到。
+
+             按「车辆状态 → 充电 → 温度 → 里程 → 通信」分组排，插进原有项之间。 -->
+
+        <div class="kv" id="kvSpeed"><span class="kv-k">车速</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvCharge"><span class="kv-k">充电</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvChargeLeft"><span class="kv-k">剩余充电</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvInTemp"><span class="kv-k">座舱温度</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvOutTemp"><span class="kv-k">车外温度</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvAcTemp"><span class="kv-k">空调设定</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvCoolant"><span class="kv-k">冷却液</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvMileage"><span class="kv-k">总里程</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvHev"><span class="kv-k">HEV 里程</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="kvConsume"><span class="kv-k">能耗</span><span class="kv-v">--</span></div>
+
+        <!-- ★★★ 2026-10-02（用户：「车机信号去掉」）：整行删除。
+
+             它显示的是「车机 ↔ 云端」的信号格数（不是手机蓝牙 RSSI），
+
+             与蓝牙页的信号条语义不同、容易被看混，按用户要求移除。 -->
+
+        <div class="kv" id="kvTs"><span class="kv-k">数据时间</span><span class="kv-v">--</span></div>
+
+        <!-- ★★★ 3.15.30（用户：「做好状态描述」）：车辆告警汇总行。
+
+             实测 ABS/SVS/SRS/EPS/ESP/制动/转向/机油/充电/动力 共 10 个告警位。
+
+             全正常→「无」(绿)；有任一亮→列名标红；该车不上报告警位→整行隐藏（不编）。 -->
+
+        <div class="kv" id="kvWarn"><span class="kv-k">车辆告警</span><span class="kv-v">--</span></div>
+
+      </div>
+
+
+
+    </section>
+
+
+
+    <!-- ═══════════════════ ② 蓝牙 ═══════════════════ -->
+
+    <section class="page" id="page-ble">
+
+
+
+      <!-- ★★★ 3.15.94（乐哥）：蓝牙页重构为三张卡 —— ①示波器 ②示波器采样调整 ③控车设置。
+
+           原信号圆环卡 / 蓝牙钥匙卡 / 车机卡一并撤销，功能分别并入：
+
+           连接与信号 → 示波器卡实时状态行；扫码授权 / 钥匙状态 → 控车设置卡。
+
+           阈值滑条取消 —— 改为在波形上长按对应阈值线拖动设定。 -->
+
+      <!-- ① 示波器 -->
+
+      <div class="card" id="bleTabScope">
+
+        <div class="sec-inline">蓝牙信号波形<span class="sec-now" id="scopeMac">--</span></div>
+
+        <div class="scope-chart no-swipe">
+
+          <canvas id="scopeCanvas"></canvas>
+
+          <div class="scope-legend">
+
+            <span class="lg lg-raw"><i></i>原始采样</span>
+
+            <span class="lg lg-sig"><i></i>判定曲线</span>
+
+            <!-- ★★★ 3.16.22（乐哥）：开启「趋势解锁」后，解锁不再看这条进入阈值线 ⇒ 图例整条隐藏
+
+                 （由 app.js 回显时控制 display）。id 供 JS 定位。 -->
+
+            <span class="lg lg-enter" id="lgEnter"><i></i>进入阈值</span>
+
+            <span class="lg lg-exit"><i></i>离开阈值</span>
+
+          </div>
+
+          <div class="scope-hint" id="scopeHint" data-keep="1">双指缩放 15 秒 ~ 10 分钟 · 单指左右拖动看历史 · 双击还原 · 长按 绿/橙 阈值线上下拖动设定</div>
+
+        </div>
+
+        <div class="scope-live">
+
+          <div class="scope-live-item"><span class="scope-live-hd"><span class="scope-live-k">连接</span><span class="qmark" id="qConn">?</span></span><span class="scope-live-v" id="scopeConn">--</span></div>
+
+          <div class="scope-live-item"><span class="scope-live-k">信号</span><span class="scope-live-v accent" id="scopeRssi">--</span></div>
+
+          <div class="scope-live-item"><span class="scope-live-k">判定</span><span class="scope-live-v" id="scopeState">--</span></div>
+
+        </div>
+
+        <div class="ble-actions" style="margin-top:10px">
+
+          <button class="btn btn-primary" id="btnBleConn">立即连接</button>
+
+          <button class="btn btn-ghost" id="btnBleDisc">断开</button>
+
+        </div>
+
+      </div>
+
+      <!-- ★★★ 3.20.99（乐哥 2026-11-04）：「示波器保持不变，在示波器下面显示横向标签，
+           把设置或者自定义功能归类的横向标签，做好看和 App 风格一样」。
+           ⇒ 示波器常驻顶部（调参时不用来回切），标签只切下面的设置卡：
+             波形调整 / 走近解锁 / 离开锁车 / 其它。 -->
+      <div class="ble-tabs no-swipe" id="bleTabs">
+        <button class="ble-tab on" data-tab="tune">波形调整</button>
+        <button class="ble-tab" data-tab="near">走近解锁</button>
+        <button class="ble-tab" data-tab="far">离开锁车</button>
+        <button class="ble-tab" data-tab="misc">其它</button>
+      </div>
+
+
+
+      <!-- ② 采样调整：只保留「调了真有区别」的参数，每项一句说明。
+
+           ★ 3.16.66：曾按蓝牙模式分三块 —— 公用 / 广播专属 / 直连专属。
+
+           ★★★ 3.16.70（乐哥「改成纯直连模式，不给用户选择权利」）：连接方式固定纯直连。
+
+           ★★★ 3.16.72（乐哥「不用区分直连和公用了 / 直连专属里面那几个自定义设置好像也没用了吧」）：
+
+             三块合并成一块 —— 只剩「始终生效」。`tuneSecAdv` / `tuneSecGatt` 两个节点
+
+             与 app.js 里的 TUNE_ITEMS.adv / TUNE_ITEMS.gatt **一起删除**；
+
+             `gatt.*` 三项在原生侧改回硬编码（500ms 采样 / 300ms 重连、不再主动断开）。
+
+             ★★★ 3.20.9（乐哥「把这个自定义输入框放出来。最小值100。最大值1000。默认500」）：
+
+             采样间隔**重新放开**，但换了 key（`scan.rssiPollMs`，归入「蓝牙扫描」组），
+
+             并把范围卡死在 100~1000 —— 3.16.72 担心的"调到 2000 会把判定调坏"由上限兜住。 -->
+
+      <div class="card" id="bleTabTune">
+
+        <div class="sec-inline">波形调整</div>
+
+        <div class="fold-body">
+
+          <div class="kv switch-row"><span class="kv-k">息屏取样本</span>
+
+            <span class="switch" id="swDiagKeep"><i></i></span></div>
+
+          <div class="hint">开着时，屏幕熄灭后仍按采样间隔继续取信号强度并画进波形，事后能回看整个走近过程；代价是待机耗电略增。平时关掉，只在排查问题或调阈值时打开。</div>
+
+          <div id="scopeTuneBody">
+
+            <!-- ★★★ 3.16.72：全部参数都在这一块里，没有任何模式切换/显隐逻辑。 -->
+
+            <div class="tune-sec" id="tuneSecCommon">
+
+              <div class="tune-sec-t">信号</div>
+
+              <div id="tuneCommonSig"><div class="empty">读取中…</div></div>
+
+              <!-- ★★★ 3.20.56（乐哥 2026-10-29）：「自动灵敏度 这个不应该是个标签吗」
+                   +「精简所有描述性的文字」：
+                   原来这里是 `tune-sub`（灰色小字）+ 一整段蓝框说明（讲进入/离开阈值怎么拖、
+                   趋势解锁用的是什么位置容差），足足五行 —— 参数一个都没多，先把人劝退了。
+                   现在：它就是和上面「信号」同级的**分节标签**，下面直接是参数；
+                   阈值拖动在波形上是可见可拖的，不再用文字讲一遍。 -->
+              <div class="tune-sec-t">自动灵敏度</div>
+
+              <!-- ★★★ 3.20.71（乐哥 2026-10-30）：「曲率可以不用设置了。只用判断正负就行。
+                   曲率设置默认关，在关闭的状态不显示曲率的设置输入。打开的时候才显示。
+                   不判断曲率，直接判断上穿或者下穿。」
+                   ⇒ 开关默认关；关着的时候下面三行曲率输入（波形曲率平滑 / 解锁曲率基准 /
+                     锁车曲率基准）由 scopeRenderParams 按本开关过滤掉，界面上根本不出现。 -->
+              <div class="kv switch-row"><span class="kv-k">曲率判定</span>
+
+                <span class="switch" id="swCurvEnable"><i></i></span></div>
+
+              <div class="hint" id="curvHint">
+
+                关＝只看信号上穿 / 下穿阈值，不判曲率；开＝再加一道方向校验（走近不能是下弯、走远不能是上弯）。信号稳定就别开。
+
+              </div>
+
+              <div id="tuneCommonSens"><div class="empty">读取中…</div></div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ③ 控车设置 -->
+
+            <div class="card" id="bleTabNear" style="display:none">
+
+        <div class="sec-inline">走近解锁</div>
+
+        <div class="fold-body">
+
+<div class="kv switch-row"><span class="kv-k">走近自动解锁</span>
+
+            <span class="switch" id="swNear"><i></i></span></div>
+
+          <!-- ★★★ 3.20.95（乐哥 2026-11-04）：「这三个只应该放出来一个 就是云端解锁兜底
+               做成开关的形式 应该放到自动靠近解锁下面」。
+               ble.unlockCloudFallback = 自动解锁时蓝牙帧确定没发出去（车没收到）→ 云端补发一次。
+               另外两项（ble.liveWatchdog 连上未认证强制重建 / ble.recoveryVerbose 自愈详细日志）
+               从界面撤掉：它们是自愈内部阈值，默认就是开着的，放出来只会让人误关出问题。
+               参数仍在 AdvancedConfig 里，dump() / advSet 照旧可读写，诊断包照样带。 -->
+          <div class="kv switch-row"><span class="kv-k">云端解锁兜底</span>
+
+            <span class="switch" id="swUnlockCloudFb"><i></i></span></div>
+
+          <div class="hint" id="unlockCloudFbHint">
+            <b>开</b> = 自动解锁时蓝牙帧确认没发出去（车没收到），立刻云端补发一次；车机明确拒绝的不补发。
+
+          </div>
+
+          <div id="nearSub">
+
+          <!-- ★★★ 3.16.22（乐哥 2026-10-16）：「趋势解锁」开关（**默认关**）+「趋势跨度」输入框。
+
+               起因：手机**揣兜 / 被身体遮挡**会让同一物理位置的蓝牙信号整体弱 10~15dB，
+
+               而判定窗只有 10dB（进 -70 / 离 -80）⇒ 部分用户揣兜贴到车边也不解锁（罚站）。
+
+               ★ 乐哥原话：「好多人是可以用的呀，只是有部分人出现了这个问题，**你不能一刀直接切**。」
+
+                 ⇒ 必须做成**用户自选**，不许内置默认开（3.16.21 的内置默认开已作废）。
+
+               开关语义：
+
+                 · 关（默认）⇒ 判定 100% 走原来的绝对阈值，存量用户零变化；
+
+                 · 开 ⇒ 解锁方向改用「**趋势 + 曲率**」：判据 = 「[趋势跨度] 窗内信号是持续走近的坡
+
+                   （绕路比 R = 路程÷净涨幅 ≤ 绕路比上限），**不要求涨多少 dB**」，不再上穿绝对阈值线；
+
+                   同时**示波器上的绿色进入阈值线隐藏**（那条线对趋势判定已无意义）；
+
+                   下方放出自定义的「趋势跨度」秒数输入框。
+
+                 · **离开（锁车）方向完全不受影响** —— 仍走阈值 + 持续确认，防误锁一点没松。 -->
+
+          <!-- ★★★ 3.16.72（乐哥「不用区分直连和公用了」）：原来这里有一行只读的
+
+               「连接方式：纯直连（固定）」+ 一段解释「为什么不再给开关」的 hint —— **删除**。
+
+               用户视角不需要知道曾经有过两种模式；连接方式固定就是固定，解释只会引出
+
+               「那我能不能换」的疑问。 -->
+
+          <div class="kv switch-row"><span class="kv-k">趋势解锁</span>
+
+            <span class="switch" id="swNearTrend"><i></i></span></div>
+
+          <div class="hint" id="nearTrendHint">
+
+            兜里揣着、被身体挡住时信号会弱 10~15dB，贴到车边也不解锁 —— 那就打开它：<br>
+
+            解锁改用「趋势」判定，不要求信号到阈值线，但位置不能离谱、突变不算数。只放宽解锁，锁车方向不变。<br>
+
+            信号正常、解锁一直好用的机器<b>不用开</b>。
+
+          </div>
+
+          <div class="kv" id="nearTrendWinRow" style="display:none">
+
+            <span class="kv-k">趋势跨度（秒）</span>
+
+            <input class="tune-input" id="inNearTrendWin" type="number" inputmode="numeric"
+
+                   min="5" max="300" step="5" value="10">
+
+          </div>
+
+          <div class="hint" id="nearTrendWinHint" data-keep style="display:none">
+
+            判定窗长度（5~300 秒，默认 10）。调大更稳更慢，调小更跟手但容易抖。
+
+          </div>
+
+          <!-- ★ 3.15.103：去抖次数输入框已删除（用户指令「去掉解锁和锁车防抖和轮数」）。
+
+               解锁/锁车阈值仍在示波器波形上长按拖动设定。 -->
+
+          <!-- ★★★ 3.16.12（乐哥 2026-10-16：「只保留媒体蓝牙抑制开关。
+
+               **如果媒体蓝牙已连接，就不执行自动解锁**，这样不就好了吗？」）：
+
+               · 开关默认**关** —— 不让存量用户被动开启；
+
+               · 开 → 判据只有一个布尔量：手机**此刻是否连着绑定的那台车机**的媒体蓝牙(A2DP/HFP)；
+
+                 连着 ⇒ **不执行自动解锁**；
+
+               · **不再做任何信号检测**，示波器上也没有媒体曲线 / 媒体阈值线；
+
+               · 需先绑定「车机媒体蓝牙」：系统蓝牙里跟车机配好「媒体音频(A2DP)」，再从这里选。 -->
+
+          <div class="kv switch-row" style="margin-top:10px"><span class="kv-k">媒体蓝牙抑制</span>
+
+            <span class="switch" id="swBtSup"><i></i></span></div>
+
+          <div class="hint" id="btSupHint">
+
+            媒体蓝牙连着车机时不自动解锁（只看连接状态）。只拦解锁，锁车照旧。
+
+          </div>
+
+          <div id="btSupBind" hidden>
+
+            <div class="kv"><span class="kv-k">已绑定</span><span class="kv-v" id="btSupBound">未绑定</span></div>
+
+            <div class="kv"><span class="kv-k">连接</span><span class="kv-v" id="btSupConn">--</span></div>
+
+            <div class="ble-actions" style="margin-top:8px">
+
+              <button class="btn btn-ghost" id="btnBtSupPick">选择车机蓝牙</button>
+
+              <button class="btn btn-ghost" id="btnBtSupClear">清除绑定</button>
+
+            </div>
+
+            <div id="btSupList" hidden style="margin-top:8px"></div>
+
+          </div>
+
+          <!-- ★★★ 3.20.61（乐哥 2026-10-29 23:1x）：「WiFi 定时停扫 这个和蓝牙抑制放到一起；
+               wifi 用选择连接过的 wifi，定时用时间选择器；注意弹窗和 ui 保持主题一致 好看」。
+
+               从「保活」卡搬过来，和媒体蓝牙抑制合成一块"后台抑制"：
+                 · WiFi：点「选择」→ 弹层多选（原生 wifiCandidates 给当前/保存过/周边三源）
+                 · 定时：点「选择」→ 弹层滚轮选起止（自绘，跟随 App 主题，不弹系统白框）
+               `inpBgWifi` / `inpBgSched` 仍留作**数据载体**（hidden）：loadConfig 回填、
+               change → saveConfig 两条老路一字不改，只是不再让人对着输入框打字。 -->
+          <!-- ★★★ 3.20.62（乐哥 2026-10-29 23:24「加入口袋遮挡自动调节信号值功能」）：
+               手机揣兜/放包里时，同一位置 RSSI 低 10~15dB（实测 -63 → -73~-78），
+               固定阈值必然一头罚站一头误开。这里让阈值按**真实遮挡量**自动下移、掏出即还原：
+                 · 判定源 = 距离传感器（息屏 + 被挡住才算），见 PocketSense.kt；
+                 · 下移量 = 塞进/掏出时前后信号差自动学（0 = 自动），也可在这里填固定值；
+                 · 翻转瞬间有 10~15dB 台阶 ⇒ 静默 3 秒、净化窗重建，不判方向。
+               ⚠ 本机没有距离/光感传感器时整块不生效，会直接写"本机无传感器"。 -->
+          <div class="bgstop">
+
+            <div class="bgstop-t">口袋遮挡补偿</div>
+
+            <div class="kv switch-row"><span class="kv-k">自动调节信号</span>
+
+              <span class="switch" id="swPocket"><i></i></span></div>
+
+            <div class="kv switch-row"><span class="kv-k">仅解锁（锁车不补偿）</span>
+
+              <span class="switch" id="swPocketUnlockOnly"><i></i></span></div>
+
+            <div class="bgstop-v" id="pocketVal">读取中…</div>
+
+            <div class="kv"><span class="kv-k">补偿量(dB)</span>
+
+              <input class="tune-input" id="pocketOffsetIn" type="text" inputmode="numeric" autocomplete="off" placeholder="0 = 自动"></div>
+
+            <div class="tune-tip">0 = 自动学这台手机的遮挡衰减；填 1~25 = 固定下移这么多，不再学。</div>
+
+          </div>
+
+          <!-- ★★★ 3.20.93（乐哥：「这几个不应该都是按钮吗？不应该让用户自定义」）：
+               微动/后备箱按压解锁只给**一个开关**，数字项不常驻。
+               3.20.94（乐哥 2026-11-04）：「打开了这个开关，信号值调节窗口必须出现；关闭就隐藏」
+               ⇒ 门槛行改成**随开关联动显隐**（#microRssiRow），不是永久摆在界面上。 -->
+          <div class="bgstop">
+
+            <div class="bgstop-t">微动按压解锁</div>
+
+            <div class="kv switch-row"><span class="kv-k">按门把手 / 后备箱微动自动解锁</span>
+
+              <span class="switch" id="swMicroUnlock"><i></i></span></div>
+
+            <!-- 只在开关打开时出现（默认 display:none，由 initMicroUnlock 联动） -->
+            <div class="kv" id="microRssiRow" style="display:none">
+              <span class="kv-k">解锁信号门槛(dBm)</span>
+              <input class="tune-input" id="microRssiIn" type="text" inputmode="numeric" autocomplete="off" placeholder="-62">
+            </div>
+
+            <div class="tune-tip" id="microTip">车已上锁 + 手机贴近（信号够强）+ 车机在 Notify 通道成对推两条 0x3D，三条同时成立才补发解锁。</div>
+
+          </div>
+
+          </div>
+
+                  </div>
+
+      </div>
+
+      <div class="card" id="bleTabFar" style="display:none">
+
+        <div class="sec-inline">离开锁车</div>
+
+        <div class="fold-body">
+
+<div class="kv switch-row"><span class="kv-k">离开自动锁车</span>
+
+            <span class="switch" id="swFar"><i></i></span></div>
+
+          <div id="farSub">
+
+          <div class="kv" style="margin-bottom:2px"><span class="kv-k">锁车动作</span>
+
+            <span class="kv-v" style="font-size:13px;color:var(--muted)">锁车必选 · 其余可多选</span></div>
+
+          <!-- ★★★ 3.16.15（乐哥 2026-10-16：「把熄火和熄火候选也加进去，但熄火和熄火候选只能选一个，
+
+               保持这几个按钮在同一排」）：
+
+               四项 —— 锁车（必选）/ 熄火 / 熄火候选 / 关车窗，永远挤在同一排（.locksteps 用 nowrap）。
+
+               · 「熄火」     = 发车机熄火帧；
+
+               · 「熄火候选」 = 发关空调指令来熄火（部分车型只认这个）；
+
+               · **两者互斥** —— 勾一个自动取消另一个（逻辑见 app.js 的 LOCK_STEP_EXCL）。
+
+               ⚠ 顺序不能改：云端关车窗要求车已熄火（否则 code=283），熄火 / 熄火候选必须排在关车窗前。 -->
+
+          <div class="locksteps" id="lockSteps">
+
+            <label class="lstep locked"><input type="checkbox" data-step="lock" checked disabled><span>锁车（必选）</span></label>
+
+            <label class="lstep"><input type="checkbox" data-step="off"><span>熄火</span></label>
+
+            <label class="lstep"><input type="checkbox" data-step="ac_off"><span>熄火候选</span></label>
+
+            <label class="lstep"><input type="checkbox" data-step="windows"><span>关车窗</span></label>
+
+          </div>
+
+          <div class="hint" id="lockChainHint" data-keep></div>
+
+          <!-- ★★★ 3.20.39（乐哥 2026-10-27）：「把锁车和熄火的顺序做成可调的，让用户可以选择先做哪个。
+
+               但最后一步一定是关车窗。这个顺序用户改完之后，云端和蓝牙都要做出相对应的变化。」
+
+               · 两枚 radio（沿用 .opt-row / .opt 选项片，选中态 JS 加 .on）：
+
+                 「先锁车」= 锁车 → 熄火 → 关车窗（**默认**，3.16.87 起的既有行为）；
+
+                 「先熄火」= 熄火 → 锁车 → 关车窗。
+
+               · **关车窗永远是最后一步**，不参与排序 —— 云端关窗有前置校验（车必须已熄火，
+
+                 否则固定回 code=283），夹在中间还会把刚睡下的车又叫醒。
+
+               · 落盘 = CredentialManager.LOCK_ORDER，三条通道同源读：
+
+                 蓝牙 BleLinkage / 云端 CloudLockChain / 小爱 BemfaMqtt 的 carlock006。 -->
+
+          <div class="kv" id="lockOrder">
+
+            <span class="kv-k">执行顺序</span>
+
+            <div class="opt-row">
+
+              <label class="opt on"><input type="radio" name="lockOrder" value="lock">先锁车</label>
+
+              <label class="opt"><input type="radio" name="lockOrder" value="off">先熄火</label>
+
+            </div>
+
+          </div>
+
+          <div class="hint" id="lockOrderHint" data-keep></div>
+
+          <!-- ★★★ 3.20.26（乐哥 2026-10-26）：「联动 500 毫秒间隔」+「加个自定义输入框，让用户
+
+               根据他自己的车辆去自定义。默认就是二五版本的」。
+
+               · 车机执行完一条指令有个处理窗口，紧跟的第二条可能会被直接拒（实测本车：锁车后
+
+                 40ms 发熄火 → 回「车端操作失败」；隔 2 秒再发 → 成功且真熄火）。
+
+               · 窗口长短逐车型不同 ⇒ 放开给用户填。★ 3.20.33（乐哥 2026-10-27）：默认改为 **500ms**。
+
+               ⚠ 它不在「高级设置」里出现（那个页面只列 GROUPS 内的参数），唯一入口就是这里。 -->
+
+          <div class="kv">
+
+            <span class="kv-k">步骤间隔（毫秒）</span>
+
+            <input class="tune-input" id="inLockGap" type="number" inputmode="numeric"
+
+                   min="0" max="3000" step="100" value="500">
+
+          </div>
+
+          <div class="hint" id="lockGapHint">
+
+            每一步之间等多久再发下一条，默认 500 毫秒。车机回「车端操作失败」就填 1000~2000。
+
+          </div>
+
+          <!-- ★ 乐哥 2026-10-26：「锁车复核时间 放在联动选择的那个下面」。
+               原生 Param = auto.recheckLockMs（AdvancedConfig，cloud 组，默认 3000 / 500~20000），
+               读取点 BleScanService.lockRecheckDelayMs()。以前藏在「波形采样调整 → 自动灵敏度」里，
+               跟锁车联动不在一处，现在挪到锁车动作卡，紧接多选与步骤间隔。
+               写入复用 advSet 桥（key 不变，落盘口径与之前完全一致）。 -->
+          <div class="kv">
+
+            <span class="kv-k">锁车复核（毫秒）</span>
+
+            <input class="tune-input" id="inLockRecheck" type="number" inputmode="numeric"
+
+                   min="500" max="20000" step="500" value="3000">
+
+          </div>
+
+          <div class="hint" id="lockRecheckHint">
+
+            蓝牙锁车后最多等这么久去云端核实，默认 3000。读得慢就调大（4000~8000）。
+
+          </div>
+
+          <!-- ★ 3.15.114 新增「临时下车」（用户：「如果用户勾选了，临时下车选项 车辆在不熄火的
+
+               情况下，不进行自动控制。这个按钮下方要进行文字说明。」）：
+
+               勾选 = 暂停「走近自动解锁 / 离开自动锁车」，不动用户原来的两个开关设置，
+
+               取消勾选即恢复；手动控车不受影响，也不熄火。
+
+               ★★★ 3.16.21（乐哥 2026-10-16）：「临时下车」**只豁免锁车，不再拦解锁** ——
+
+               勾着它走近车边也要能开门（旧行为会把人拦在门外罚站）。 -->
+
+          <div class="kv switch-row" style="margin-top:10px"><span class="kv-k">临时下车</span>
+
+            <span class="switch" id="swTempPark"><i></i></span></div>
+
+          <div class="hint" id="tempParkHint">
+
+            勾选后：确认车辆<b>未熄火</b>时，人离开不自动锁车，走近仍照常解锁。<br>
+
+            熄火或读不到车况 → 豁免失效（宁可锁上）。手动按钮不受影响。
+
+          </div>
+
+          <!-- ★★★ 2026-11-02：锁车「没锁好」报警自定义铃声 -->
+          <div class="bgstop">
+
+            <div class="bgstop-t">锁车报警铃声</div>
+
+            <div class="kv switch-row"><span class="kv-k">锁车没锁好·自定义铃声</span>
+
+              <span class="switch" id="swLockAlarmSound"><i></i></span></div>
+
+            <div class="kv switch-row"><span class="kv-k">锁车报警·震动</span>
+
+              <span class="switch" id="swLockAlarmVibrate"><i></i></span></div>
+
+            <div class="bgstop-v" id="lockAlarmSoundHint">读取中…</div>
+
+            <div class="kv"><span class="kv-k">选择铃声</span>
+
+              <button class="btn-mini" id="btnLockAlarmSoundPick">选择音效</button></div>
+
+            <div class="tune-tip">开启后，锁车复核发现「车门没锁好 / 锁车没做完」会播放你挑的这段音效（通知照常弹；是否震动见上方「锁车报警·震动」开关）。点「选择音效」从手机里挑一段音频；再点一次可更换。</div>
+
+          </div>
+
+          </div>
+
+                  </div>
+
+      </div>
+
+      <div class="card" id="bleTabMisc" style="display:none">
+
+        <div class="sec-inline">其它</div>
+
+        <div class="fold-body">
+
+<!-- ★★★ 3.20.22（乐哥 2026-10-25 定案）：**拉门自动上电**（2 选 1 指令）。
+
+               乐哥原话：「自动上电 指令0x02 或者 开空调指令 做成2选1。只要确保蓝牙连接状态，
+               用户拉车门，获取到这个拉车门这个状态就可以。然后用户选择指令 0x02，
+               或者开空调，这里去发送启动。」
+
+               · 开关默认关（不碰存量用户）；
+               · 开 ⇒ 解锁后 60 秒布防窗内，蓝牙车况帧报「左前门 关→开」就发一次；
+               · 指令由用户在这里 2 选 1：上电(0x02) / 开空调(0x03)。
+
+               ★★★ 3.20.27（乐哥 2026-10-27）：「做成选项按钮 启动 上电 开空调 三选一」，
+                 并明确「（启动 = ）APP 首页的启动控制」⇒ 下拉框换成三枚 radio。
+               ★★★ 3.20.29（乐哥 2026-10-27）：「取消启动 保留上电 开空调」⇒ 收回两枚 radio。
+                 · 上电（默认）= 只发蓝牙 0x02（不进云端，拉门的人就在车边）；
+                 · 开空调 = 0x03（蓝牙失败可回落云端）。
+                 ⚠ 官方 so 电源类只有 0x02 一个码 —— 当初那个「启动」和「上电」本来就是一回事，
+                   所以取消启动不损失任何车上动作，只是少一个让人纠结的选项。 -->
+          <div class="kv switch-row" style="margin-top:10px"><span class="kv-k">拉门自动上电</span>
+
+            <span class="switch" id="swDoorStart"><i></i></span></div>
+
+          <!-- ★★★ 3.20.29（乐哥 2026-10-27）：「开门上电取消启动 保留上电 开空调」⇒ 二选一。
+               去掉 start（启动）：官方 so 电源类只有 0x02 一个码，启动与上电车上效果相同，
+               留着只是多一个让人纠结的选项。默认 = 上电。存量选过「启动」的，原生归一成上电。 -->
+          <div class="fld" id="doorStartRow" style="display:none"><span>拉门后发送</span>
+            <div class="opt-row">
+              <label class="opt on"><input type="radio" name="doorStartCmd" value="power">上电</label>
+              <label class="opt"><input type="radio" name="doorStartCmd" value="ac_on">开空调</label>
+            </div>
+          </div>
+
+          <!-- ★★★ 3.20.26（乐哥 2026-10-26）：**判据来源 云端 / 蓝牙 二选一**。
+
+               乐哥原话：「那就出个选项 云端蓝牙二选一。如果选云端，就让用户自定义解锁后
+               延迟多少秒开始调取云端车况，默认3秒，之后间隔一秒一次，直到车辆开主驾驶门，
+               最多调用5次。选蓝牙就默认现在的状态。自定义延时只出现在选云端后。」
+
+               ★ 乐哥当日修订：「这个二选一不要做成选择框，做成单选按钮」
+                 ⇒ 下拉框改成两枚 radio（.opt-row / .opt），点哪枚选哪枚，选中态 JS 加 .on。
+
+               为什么要这个选项：0x3D 车况帧**不是每台车机都推**
+               （2026-10-26 三台车实测：京AEE7991 推；吉AFA5729 / 粤BG22266 一帧都没有，
+                op=0x01 查 35 次连 0x2b 都不回）⇒ 那些车上蓝牙判据永远没输入。
+               云端判据走 `leftFrontDoor`（0=关 / 1=开 / -1=未上报），是这类车的第二条路。 -->
+          <div class="fld" id="doorStartSrcRow" style="display:none"><span>判据来源</span>
+            <div class="opt-row">
+              <label class="opt on"><input type="radio" name="doorStartSrc" value="ble">蓝牙车况</label>
+              <label class="opt"><input type="radio" name="doorStartSrc" value="cloud">云端车况</label>
+            </div>
+          </div>
+
+          <!-- ★★★ 3.20.31（乐哥 2026-10-27）：「云端开门上电窗口期 60 秒，延迟 3 秒固定，
+               不再显示延时自定义输入」⇒ 原来的「解锁后延迟（秒）」输入框整块删除。
+               ⚠ 不是"藏起来"，是删掉：延迟已是原生常量（BleRuntime.DOOR_START_CLOUD_DELAY_MS），
+               留着输入框只会让用户以为还能改。
+               ★ 3.20.36（乐哥 2026-10-27 14:26）：「把开门上电延时 3 秒取消」⇒ 该常量已改 0，
+               解锁即开始查，文案同步成「解锁后立即每秒查一次」（不再写 3 秒）。
+               ★ 3.20.38（乐哥 2026-10-27，三个诊断包定案）：以前「一直查」其实是在查同一份数据
+               （一个串号查 60 遍），现在每次查到值都重新向车机取新数据 ⇒ 文案补上这一句。 -->
+
+          <div class="hint" id="doorStartHint" data-keep style="display:none">
+            解锁后 60 秒内有效，一次解锁最多发一次；判据用蓝牙就走蓝牙、用云端就走云端。车已上电则不补发。
+          </div>
+
+          <div class="bgstop">
+
+            <div class="bgstop-t">后台扫描抑制</div>
+
+            <!-- ★★★ 3.20.68（乐哥 2026-10-30）：「WiFi 和定时 功能 做成一个按钮。点开之后是
+                 这两个的设置页。这个里面可以设置多场景」——
+                 原来这里是「到家（WiFi）选择 + 一个全局信号门槛 + 一个定时段」三行平铺，
+                 现在收成一行入口；详细配置（多场景、每场景独立门槛）在 page-bgstop 子页。 -->
+            <div class="kv"><span class="kv-k">WiFi 与定时</span>
+              <button class="btn-mini" id="btnBgOpen">打开设置</button></div>
+
+            <div class="bgstop-v" id="bgSummary">读取中…</div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ═══════════════════ ③ 行程 ═══════════════════ -->
+
+    <section class="page" id="page-trips">
+
+      <!-- ★★★ 3.20.96（乐哥 2026-11-04）：「谁让你改我里程的 UI 界面了？恢复里程之前的 UI 界面」。
+           四张统计卡原样恢复（grid2 + card.stat），一格都没动。 -->
+      <div class="grid2" id="tripStats">
+
+        <div class="card stat">
+
+          <div class="stat-v" id="stMileage">--</div>
+
+          <div class="stat-k">总里程 (km)</div>
+
+        </div>
+
+        <div class="card stat" id="stHevCard">
+
+          <div class="stat-v" id="stHev">--</div>
+
+          <div class="stat-k">混动里程 (km)</div>
+
+        </div>
+
+        <div class="card stat">
+
+          <div class="stat-v" id="stEv">--</div>
+
+          <div class="stat-k">纯电里程 (km)</div>
+
+        </div>
+
+        <div class="card stat">
+
+          <div class="stat-v" id="stConsume">--</div>
+
+          <div class="stat-k">平均能耗</div>
+
+        </div>
+
+      </div>
+
+      <!-- ★★★ 3.20.97（乐哥）：「我只是让你做成能查询的历史，当天正常显示每条，
+           查询历史也要查询的详细的每条」⇒ 3.20.96 的"每天一行"撤掉，
+           恢复每条行程一行（上电→熄火一段一条），当天与历史同口径。 -->
+      <div class="sec-title">行程记录</div>
+
+      <div class="card">
+
+        <div class="sec-inline">
+
+          今日累计 <b id="tripToday">--</b> km
+
+          <button class="mini-btn" id="btnTripClear">清空</button>
+
+        </div>
+
+        <div class="trip-hint">每条一段：上电开始记、熄火结算，里程取两次总里程之差；断联不算。</div>
+
+        <div class="trip-list" id="tripList">
+
+          <div class="empty">还没有采样 —— 每天第一次拿到车况就会记一笔</div>
+
+        </div>
+
+      </div>
+
+      <!-- ═══ 车辆能耗（★ 3.15.17 / #226）═══
+
+           数据源 = 云端 `/vehicleInfo/vehicle/getEnergyConsumption`：
+
+           最近 50km 电耗/油耗、终身平均、7 天趋势。
+
+           ⚠ 官方那种「充电订单记录」（时间/地点/金额/充了多少度）走的是充电地图/订单体系，
+
+             不在车云域内 —— 这里给的是车云里确有其数据的**能耗**，两者不是一回事。
+
+
+
+           ★★★ 3.15.19（#226，用户 2026-10-10「…这个近7天趋势。报错的。」）：
+
+           该端点实测回 HTTP 404（路径不存在）⇒ **整块默认隐藏**，只有真拿到数据时才显示
+
+           （app.js 的 onEnergy 成功时才 display）。这样拿不到数据的用户**根本看不到这块**、
+
+           更不会有任何报错。包裹层 `#secEnergy` 就是显隐开关，内部结构一字未动。 -->
+
+      <div id="secEnergy" style="display:none">
+
+        <div class="sec-title">车辆能耗</div>
+
+        <div class="grid2">
+
+          <div class="card stat">
+
+            <div class="stat-v" id="enNearEv">--</div>
+
+            <div class="stat-k">近50km 电耗</div>
+
+          </div>
+
+          <div class="card stat">
+
+            <div class="stat-v" id="enNearOil">--</div>
+
+            <div class="stat-k">近50km 油耗</div>
+
+          </div>
+
+          <div class="card stat">
+
+            <div class="stat-v" id="enAvgEv">--</div>
+
+            <div class="stat-k">终身平均电耗</div>
+
+          </div>
+
+          <div class="card stat">
+
+            <div class="stat-v" id="enAvgOil">--</div>
+
+            <div class="stat-k">终身平均油耗</div>
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="sec-inline">
+
+            近 7 天趋势
+
+            <button class="mini-btn" id="btnEnRefresh">刷新</button>
+
+          </div>
+
+          <div class="en-bars" id="enTrend"><span class="empty">正在查询…</span></div>
+
+          <div class="hint" id="enHint" data-keep="1">进本页时自动查询（<b>扫码授权即可，不用登录账号</b>）</div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+
+
+    <!-- ═══════════════════ ④ 账户 ═══════════════════ -->
+
+    <section class="page" id="page-account">
+
+      <!-- ★★★ 2026-09-29 本地化：服务器四项（地址/端口/连接密钥/主密钥）**整体删除**。
+
+           App 现在自己直连比亚迪云，中间那台机器不存在了，留着只会让人以为还得配。
+
+           现在的账户页就四件事：比亚迪账号 / 密码 / 控制 PIN / 巴法云 UID（车辆 VIN 登录后云端自动下发），
+
+           外加两条实时状态（云直连、小爱语音），填完点保存会真的登录一次并读车况。 -->
+
+      <div class="card">
+
+        <div class="sec-inline">钥匙授权<span class="chan-tag" id="tagKeyAuth">扫码即用</span></div>
+
+        <div class="hint" style="margin-bottom:8px">
+
+          用「比亚迪官方 App」扫一次码即完成授权，不需要账号密码 —— 蓝牙控车钥匙直接到手，
+
+          云端车况与云端控车同时打通。
+
+        </div>
+
+        <div class="kv"><span class="kv-k">本机钥匙</span><span class="kv-v" id="bleKeyReady">--</span></div>
+
+        <div class="kv"><span class="kv-k">当前车机</span><span class="kv-v" id="carBound">未绑定</span></div>
+
+        <div class="ble-actions" style="margin-top:10px">
+
+          <button class="btn btn-primary" id="btnKeySync">🔑 扫码授权钥匙</button>
+
+        </div>
+
+        <!-- ★★★ 3.15.110（用户要求「登录界面隐藏所有关于账户的登录入口」）：
+
+             比亚迪账号/密码/控制 PIN/保存按钮/四步登录/云直连状态全部收进下面的隐藏容器 ——
+
+             代码整段保留（登录直连是扫码打不开时的备援取钥匙通道，删码不如藏码）；
+
+             需要恢复显示时，删掉 acctLoginBox 上的 hidden 属性即可。 -->
+
+        <div id="acctLoginBox" hidden>
+
+        <div class="kv" id="cfgCloud"><span class="kv-k">比亚迪云</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="cfgMqtt"><span class="kv-k">小爱语音</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="cfgQueue"><span class="kv-k">控车队列</span><span class="kv-v">--</span></div>
+
+        <label class="fld"><span>比亚迪账号</span><input id="cfUser" placeholder="手机号 / 邮箱" autocomplete="off"></label>
+
+        <!-- ★★★ 3.15.34（用户 2026-10-10）：「比亚迪登录密码也增加小眼睛」。
+
+             密码看不见 ⇒ 输错也无从发现。复用 3.14.184 给控制 PIN 做的那套 .pinbox/.pin-eye。 -->
+
+        <label class="fld"><span>比亚迪密码</span>
+
+          <div class="pinbox">
+
+            <input id="cfPass" type="password" placeholder="比亚迪 App 登录密码" autocomplete="off">
+
+            <i class="pin-eye" id="cfPassEye" title="显示 / 隐藏">👁</i>
+
+          </div>
+
+        </label>
+
+        <!-- ★★★ 3.14.184（2026-10-08 查证「官方同 PIN 能过、我们回 code=16」）：
+
+             ① 去掉 `inputmode="numeric"` —— 部分国产输入法在该提示下会**强制数字键盘并过滤非数字**，
+
+                用户的 PIN 若含字母就直接输不进去/被吞；
+
+             ② 加「显示/隐藏」眼睛：PIN 是密码框，用户看不到自己输了什么、输错也无从发现。
+
+                （全角数字这类"看着一样、md5 不同"的输入，只有让他自己看一眼才能立刻发现。）
+
+             ⚠ 用 div/i 而不是 span：`.fld span` 有固定 80px 宽，会把这个小控件撑坏。 -->
+
+        <label class="fld"><span>控制 PIN</span>
+
+          <div class="pinbox">
+
+            <input id="cfPin" type="password" placeholder="6 位远程控制 PIN" autocomplete="off">
+
+            <i class="pin-eye" id="cfPinEye" title="显示 / 隐藏">👁</i>
+
+          </div>
+
+        </label>
+
+        <!-- ★ 3.14.72：车辆 VIN 输入框**整体删除** —— 登录后云端随「车辆列表」自动下发，
+
+             不该让用户去抄 17 位车架号。VIN 由 BydLocal 在首次云会话时自动取回并加密落盘。 -->
+
+        <!-- ★★★ 3.14.177（用户 2026-10-08：「把巴法云 UID 放到小爱卡片这里。因为这个如果
+
+             用户不选择开启小爱功能的话，他不用填。放到上面容易影响用户判断。」）：
+
+             「巴法云 UID」输入框**整体移到下面的「小爱卡片」卡内**（见该卡）。
+
+             这里只剩比亚迪账号三件套 —— 一个「不用小爱就完全看不到」的字段，
+
+             不该挤在登录凭据中间。 -->
+
+        <!-- ★★★ 3.15.31（用户 2026-10-10）：「取消登录这个按钮。保存账户并测试这个按钮
+
+             点完确认登录完成之后，把它显示成退出登录不就好了吗？」
+
+             ⇒ 只留**一颗** #btnSaveCfg，文案/职责由 JS 按登录态切换（见 app.js setAcctBtn）：
+
+                未登录 = 「保存账户并测试」；已登录 = 「退出登录」。并排的 #btnLogout 已删除。
+
+             （退出态走原生 logoutAccount：只清账号凭据，**蓝牙钥匙保留**，退出后照样蓝牙控车。
+
+              3.15.14 起的"退出账户"按钮、3.15.28 的两按钮布局，均随本次单按钮化一并作废。） -->
+
+        <!-- ★★★ 2026-10-12（用户要求）：登录时是否**自动获取蓝牙钥匙**。
+
+             默认勾选 ⇒ 与旧版一致（登录后自动取钥匙，四步全绿）；
+
+             取消勾选 ⇒ 只登录账户（前三步），蓝牙钥匙改到「蓝牙」页点「扫码授权钥匙」获取。
+
+             勾选态随 saveConfig 落盘（原生 login_get_ble_key），登录流程第④步据此决定是否取钥匙。 -->
+
+        <label class="hint" style="display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer">
+
+          <input type="checkbox" id="cfGetKey" checked style="width:auto;flex:none;margin:0">
+
+          <span>登录时获取蓝牙钥匙（不勾选则只登录账户，钥匙用「扫码授权钥匙」获取）</span>
+
+        </label>
+
+        <div class="cfg-actions">
+
+          <button class="btn btn-primary" id="btnSaveCfg">保存账户并测试</button>
+
+        </div>
+
+        <div class="hint" id="cfgHint" data-keep="1"></div>
+
+        <!-- ★★★ 2026-10-11（用户规格）：点「登录」后四步逐条点亮 —— 用户能看见登录走到哪一步：
+
+             ① 登录（账号/密码/控制密码）② 账户身份（主账户/授权账户）③ 车辆 VIN ④ 蓝牙钥匙。
+
+             四步全绿后，上面的按钮才从「保存账户并测试」变成「退出登录」。 -->
+
+        <div id="loginSteps" data-keep-tree style="display:none;margin-top:6px"></div>
+
+        <!-- ★★★ 3.14.177（用户 2026-10-08：「诊断 车况获取不到点他 这个按钮取消，
+
+             相关代码已删除。只记录日志供上传」）：整块诊断按钮 + 结果回填逻辑**全部删除**。
+
+             车况取不到这件事已由「日志自动上传」覆盖 —— 失败现场会自动进作者端，
+
+             不再需要用户手动点一下再把文本复制出来发出来。 -->
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ★★★ 2026-10-02（用户：「巴法云 ID 配置之后下面应该有个设置界面，他想点配置几个卡片，
+
+           选上就行，选完之后显示正在建立或者是已开启状态；关闭一次再重新点开就重新建立一次，
+
+           重新建立时卡片名称不能变，不然还得去小爱自定义训练里重新配置」）：
+
+           勾选 → 一键在巴法云账号里建卡 → 米家加「巴法」平台即可同步出卡片。
+
+           卡名固定（原生 BemfaCards.ALL，与 cloud/qinl_actions.py 的 CARD_NAMES 逐字一致）；
+
+           云端已存在的卡一律跳过不覆盖 —— 所以小爱训练里的绑定永远不会失效。 -->
+
+      <div class="card foldable folded" id="cardCards">
+
+        <div class="sec-inline fold-head">小爱卡片
+
+          <span class="chan-tag" id="tagCards">未开启</span>
+
+        </div>
+
+        <!-- ★★★ 3.14.177（用户 2026-10-08：「APP 刚安装后小爱这个卡片是不展示的。
+
+             我们已经有未开启这种标签，点击未开启这个标签才展示这个卡片」）：
+
+             整张卡的**内容**默认折叠（`hidden`），只留标题 + 状态标签；
+
+             点标签展开。**不用小爱的用户永远看不到那一堆设置**，不再干扰判断。
+
+             另外「巴法云 UID」也搬进这里（用户：「不选择开启小爱功能的话，它不用填」）。
+
+             ⚠ 折叠只影响显示 —— 里面的输入框始终在 DOM 里，`saveConfig` 照常读到它的值，
+
+               不会因为"没展开"就把已存的 UID 清掉。 -->
+
+        <div class="fold-body" id="cardsBody">
+
+          <label class="fld"><span>巴法云 UID</span><input id="cfBemfa" type="password" placeholder="32 位私钥 UID（小爱语音用，不填就不启用）" autocomplete="off"></label>
+
+          <!-- ★★★ 客户需求（2026-10-29，乐哥原话）：
+                 「八法云同步的意思是 用户卸载重装之后，每次都要重新配置 重新训练小爱。
+                  我的意思是用户卸载重装后，填入 ID 之后点同步就把八法云的配置拉到我们 APP。」
+
+                 丢的从来不是云端那 12 个设备（它们一直在账号里、名字固定，小爱训练绑的是
+                 设备名，所以**一条训练都不用重做**），丢的是 App 本机这两样：
+                   · 勾了哪几张卡（决定去订阅谁）
+                   · 自定义卡的名字 / 执行命令 / 参数（重配最费事）
+                 点这个按钮 = 把这两样从云端存档（topic qinlcarconf）拉回来，然后自动重新订阅。 -->
+
+          <div class="ble-actions" style="margin-top:8px">
+            <button class="btn btn-ghost" id="btnBemfaPull">⤓ 从巴法云同步配置</button>
+          </div>
+
+          <div class="hint">换手机 / 卸载重装后：填上巴法云 UID → 点上面这个按钮，<b>勾选和自定义卡一次性拉回来</b>，不用重新训练小爱。</div>
+
+          <!-- ★★★ 3.20.67（乐哥 2026-10-30）：「**手动备份的这个按钮删除。修改完自动保存备份**」。
+               ⇒ 「立即备份到手机」按钮已删除。现在任何一处配置改动（卡片勾选 / 自定义卡 /
+                 高级参数 / 界面设置 / 图标）都会自动写一份到 Download，10 秒节流，
+                 改完立刻清数据也能读回来 —— 用户不需要记得点任何东西。 -->
+          <div class="confbak">
+            <div class="confbak-t">手机本地备份</div>
+            <div class="confbak-p">Download/qinl-car-conf.json</div>
+            <div class="confbak-s" id="confBakState">改完自动保存；清数据 / 重装后首次启动自动读取</div>
+          </div>
+
+          <div class="hint">
+
+            勾选要用的卡片 → 点「开启所选」，App 直接在你巴法云账号里建好这些设备卡；
+
+            建完到 <b>米家 → 我的 → 其他平台设备 → 添加「巴法」</b> 就能看到卡片。
+
+            <b>卡名固定不变</b>（改了小爱自定义训练里的绑定就全废）。关闭会删掉卡片，再开启按原名字重建。
+
+          </div>
+
+          <div id="cardList" data-keep-tree></div>
+
+
+
+          <!-- ★★★ 3.16.30（乐哥 2026-10-17）：「开启巴法云自定义卡片。可以自定义名称和执行命令。
+
+               名称做成输入框，执行命令做成选择框。」
+
+               固定 12 张卡一个都不动（小爱训练绑的就是那些名字），自定义卡是**追加**的：
+
+                 · topic 自动生成 `carxNNN006`（末三位 006 = 开关类型，米家才有按钮语义）；
+
+                 · 名称由用户填（= 他以后在小爱里喊的那个名字）；
+
+                 · 执行命令从下拉里选（与固定卡共用同一套动作名）。 -->
+
+          <div class="sec-inline" style="margin-top:16px">自定义卡片
+
+            <span class="chan-tag ghost" id="tagCustom">0 张</span>
+
+          </div>
+
+          <div class="hint">
+
+            自己起名字、选一条执行命令。名字就是你在小爱同学里喊的那个名字 ——
+
+            <b>建好后别乱改</b>，改了要在小爱训练里重新绑定。
+
+          </div>
+
+          <div id="customList" data-keep-tree></div>
+
+          <div class="ble-actions" style="margin-top:8px">
+
+            <button class="btn btn-ghost" id="btnCustomAdd">+ 添加自定义卡片</button>
+
+          </div>
+
+
+
+          <div class="ble-actions" style="margin-top:10px">
+
+            <button class="btn btn-primary" id="btnCardsOn">开启所选</button>
+
+            <button class="btn btn-ghost" id="btnCardsOff">关闭（删除）</button>
+
+            <button class="btn btn-ghost" id="btnCardsFresh">刷新状态</button>
+
+          </div>
+
+          <div class="hint" id="cardsHint" data-keep="1">填好上面的巴法云 UID 并保存后，点「刷新状态」。</div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ★★ 2026-09-29（用户：「添加app控制日志」）：
+
+           控制台账 —— 每一次控车（蓝牙 / 云端）都记一行：几点、干了什么、
+
+           走的哪条通道、成功还是失败、花了多久、对方回了什么话。
+
+           与设置页那份「运行日志」不同：这份只装控车结果，且**持久化**，
+
+           杀进程、重启手机都还在。最多留 200 条（原生侧滚动覆盖）。 -->
+
+      <div class="card">
+
+        <div class="sec-inline">操作日志<span class="chan-tag ghost" id="cmdLogCnt"></span></div>
+
+        <div class="hint">最近 200 条控车记录（含蓝牙 / 云端、成功失败、耗时）。</div>
+
+        <!-- ★ 3.16.90（乐哥）：蓝牙控制与云端兜底的日志分开看 —— 顶部筛选 -->
+        <div class="seg-row" id="cmdLogFilterRow" style="margin:6px 0 8px">
+          <button class="seg-btn on" data-clf="all">全部</button>
+          <button class="seg-btn" data-clf="ble">蓝牙</button>
+          <button class="seg-btn" data-clf="cloud">云端</button>
+          <button class="seg-btn" data-clf="skip">未执行</button>
+        </div>
+        <div class="cmdlog" id="cmdLogList"></div>
+
+        <div class="ble-actions" style="margin-top:10px">
+
+          <button class="btn btn-ghost" id="btnCmdLogRefresh">刷新</button>
+
+          <button class="btn btn-ghost" id="btnCmdLogClear">清空日志</button>
+
+        </div>
+
+      </div>
+
+
+
+    </section>
+
+
+
+    <!-- ═══════════════════ ⑤ 设置（顶栏 ⚙️ 进入）═══════════════════ -->
+
+    <section class="page" id="page-settings">
+
+      <!-- ══════════════════════════════════════════════════════════════════
+
+           ★★★ 3.15.51（用户 2026-10-11「设置里面第一卡片做一个详细的耗电分析」）═══
+
+           设置页**第一张卡** = 耗电分析。汇总"这个 App 到底在哪耗电"的可观测事实：
+
+             · 后台运行时长 / 今日被系统清理次数（KeepAliveHelper.runtime）；
+
+             · 电池优化白名单 / 系统省电模式；
+
+             · 蓝牙服务启动次数 + 最近一次被拉起的时间与原因（keepAliveReport）。
+
+           ⚠ 全部取**原生已上报的真实事实**，没有的就不显示（不编数据、不估耗电占比）。 -->
+
+      <div class="card foldable folded">
+
+        <div class="sec-inline fold-head">耗电分析</div>
+
+        <div class="fold-body">
+
+        <!-- ★★★ 3.15.57（用户 2026-10-11「设置里面放一行红字，关于前台最耗电和划掉后台省电的说明」）：
+
+             把「前台最耗电 / 清理后台最省电」讲给用户 —— 红字醒目，放在设置第一张卡的首行。
+
+             ★ 3.15.58（用户：「只给他说清后台。剩余的没办法说明，系统不一样，清理后台方式也会不一样」）：
+
+             只留一句结论，**不写具体怎么清**（各系统清理后台的入口/手势都不同，写了反而误导）。 -->
+
+        <div class="hint" style="color:var(--danger);font-weight:600">⚡ 省电提醒：App 在<b>前台最耗电</b>，<b>清理后台最省电</b>。</div>
+
+        <div class="kv" id="pwUptime"><span class="kv-k">后台运行</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="pwKill"><span class="kv-k">今日被清理</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="pwBattery"><span class="kv-k">电池优化白名单</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="pwPowerSave"><span class="kv-k">系统省电模式</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="pwSvcBoot"><span class="kv-k">蓝牙服务启动</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="pwLastStart"><span class="kv-k">最近拉起</span><span class="kv-v">--</span></div>
+
+        <div class="hint" id="pwHint">耗电主要来自「常驻蓝牙连接（每 0.5 秒读一次信号）」与「云端车况轮询」。取不到的项显示 --（不估算、不编造）。</div>
+
+        </div><!-- /fold-body -->
+
+      </div>
+
+
+
+      <!-- ★★★ 3.14.177（用户 2026-10-08：「运行日志，前台的卡片全部去掉。用户基本用不到这种。
+
+           保留后台记录和自动上传」）：整张「运行日志」卡片**删除**（含 读取 / 复制全部 /
+
+           上传日志 / 清空 四个按钮、接收地址与端口两个输入框、日志文本框、上传状态行）。
+
+
+
+           ★ 只删**前台入口**，后台链路一条不少：
+
+             · AppLog 照常记录、落盘（保留 7 天）；
+
+             · LogUploader 照常自动上传 —— 启动 90 秒后首次、之后每天一次，
+
+               <b>蓝牙/云端解锁失败</b>若当天还没传过则提前传那一次（3.14.173 起覆盖**所有用户**）；
+
+             · 上传内容照常在服务端 sanitize（手机号 / 车架号打码）。
+
+           ⇒ 用户看不到、也不用管这一块，出问题时作者端照样拿得到现场。 -->
+
+
+
+      <div class="card foldable folded">
+
+        <div class="sec-inline fold-head">后台保活设置</div>
+
+        <div class="fold-body">
+
+        <!-- ★★★ 3.15.80（用户 2026-10-11）：「后台守护运行」开关从「自动化」卡**移入本卡**。 -->
+
+        <div class="kv switch-row"><span class="kv-k">后台守护运行</span>
+
+          <span class="switch" id="swKeeper"><i></i></span></div>
+
+        <!-- ★ 3.14.21：id 从内层 span 移到外层 .kv —— 与其余 9 个车况项统一，
+
+             否则 setKV() 找不到 .kv-v 会抛 TypeError（详见 app.js setKV 注释） -->
+
+        <!-- ★★★ 3.14.197（用户 2026-10-09：「**我们不是去检测权限有没有给到，还是检测我们
+
+             APP 是否在后台运行**，如果不能就让用户自己去做后台保活」）：
+
+             ★ 客户需求（2026-10-29）：「后台运行时间 保活设置里显示取消 不然重复了」
+
+             —— 这一行**已从保活卡删除**（设置页第一张「耗电分析」卡里已经有同一份读数
+
+             `#pwUptime`，两处显示同一个数就是重复）。判据仍是**我们自己的运行事实**
+
+             （服务被系统清理后靠自己爬回来的次数），不是查权限、也不是查系统设置。
+
+             保活卡现在第一行是「电池优化白名单」；判"保没保住"仍然决定下面
+
+             要不要长出「去修保活」按钮。通知栏那行「后台：…」读同一份判定
+
+             （原生 KeepAliveHelper.runtime）。 -->
+
+        <div class="kv" id="keepBattery"><span class="kv-k">电池优化白名单</span><span class="kv-v">--</span></div>
+
+        <div class="kv" id="keepPerm"><span class="kv-k">蓝牙权限</span><span class="kv-v">--</span></div>
+
+        <!-- ★★★ 3.14.196（用户 2026-10-09：「**息屏状态下的解锁和锁车都要在通知栏里面显示。
+
+             可以在 APP 里面让用户授予权限。**」）：
+
+             Android 13+ 的**通知权限** —— 缺它时解锁/锁车的结果通知会被系统**静默丢弃**，
+
+             息屏 / 锁屏上什么都看不到（用户只会觉得"解锁了却没反应"）。
+
+             启动时会自动要一次；这一行就是**当时点了「拒绝」之后的补授入口**。 -->
+
+        <div class="kv" id="keepNotif"><span class="kv-k">通知权限（息屏）</span><span class="kv-v">--</span></div>
+
+        <!-- ★★★ 3.14.174（用户：「部分用户反馈后台保活不住，华为用户居多」）：**开机自启**这一项。
+
+             华为 / 荣耀「应用启动管理」的三个开关（允许自启动 / 关联启动 / 后台活动）
+
+             **没有公开 API 可查**，所以这里的读数是**间接判定**：
+
+             靠「本次开机之后，我们收到过 BOOT_COMPLETED 没有」反推 —— 详见原生 KeepAliveHelper。 -->
+
+        <div class="kv" id="keepAutoStart"><span class="kv-k">开机自启</span><span class="kv-v">--</span></div>
+
+        <div class="ble-actions">
+
+          <!-- ★★★ 3.14.197（用户：「如果不能就让用户自己去做后台保活」）：
+
+               只在**判定后台没保住**时才由 app.js 显示（默认 display:none）——
+
+               点它 = 跳到**最该先修的那一项**的系统设置页，
+
+               与通知栏那颗「去设置保活」走的是同一个原生函数，两边落点必然一致。 -->
+
+          <button class="btn btn-primary" id="btnKeepFix" style="display:none">去修保活</button>
+
+          <button class="btn btn-primary" id="btnBattery">申请电池白名单</button>
+
+          <button class="btn btn-ghost" id="btnPerm">申请蓝牙权限</button>
+
+          <!-- ★★★ 3.14.196：两枚补授按钮（上面对应的读数行会说明"缺了会怎样"）。 -->
+
+          <button class="btn btn-ghost" id="btnNotifPerm">通知权限</button>
+
+          <button class="btn btn-ghost" id="btnOpenAutoStart">打开启动管理</button>
+
+          <!-- ★★★ 3.21.11（乐哥 2026-11-04「给我出个测试版本，实时检测 0x3D」）：
+               微动解锁排查用的实时面板 —— 按门把手当场就能看到车推了几帧、锁位是什么。
+               只读，不控车、不写盘。 -->
+          <button class="btn btn-ghost" id="btnMicro3d">0x3D 实时</button>
+
+        </div>
+
+        <!-- ★★★ 3.14.174：分厂商的「怎么开自启动」步骤（原生 autoStartSteps 提供）——
+
+             华为 / 荣耀用户看到的是官方原文那套「关掉自动管理 + 打开三个开关」。
+
+             旧实现只把用户甩到启动管理**列表页**、一个字都不说，这是"保活不住"里最便宜的一环。 -->
+
+        <div class="hint" id="autoStartSteps" style="display:none" data-keep="1"></div>
+
+        <!-- ★★★ 3.14.174：**保活体检** —— 机型 / 服务启动次数 / 最近一次被拉起的时间与原因。
+
+             它同时服务两个目的：用户自己能看出"后台是不是已经死了"，
+
+             作者拿到日志也能一眼判断保活链有没有在工作。 -->
+
+        <!-- ★★★ 3.15.88（乐哥 2026-10-12）：「部分用户后台保活不下来，让这些用户可以选择去测试」。
+
+             通知改媒体形态：开启后常驻通知变成媒体控制卡片（锁屏直接露大按钮），MediaSession
+
+             能多拿一层 Doze 豁免。默认关 —— 只有保活不住的机器才建议开。 -->
+
+        <div class="kv switch-row"><span class="kv-k">通知改媒体形态<br>
+
+          <span style="font-size:12px;color:var(--muted)">保活不住时开：锁屏变媒体卡片（多一层 Doze 豁免）</span></span>
+
+          <span class="switch" id="swMediaStyle"><i></i></span></div>
+
+        <!-- ★★★ 3.16.86（乐哥 2026-10-22）：「低频扫描 做成保活设置里可选项」。
+
+             纯直连后（3.16.70 起）已绑定车机时广播扫描整条停掉 —— 省电，但进程在息屏期
+
+             没有任何硬件事件喂它，容易被系统判定为空闲并冻结（靠近解锁第一帧变慢）。
+
+             打开本项 = 保留一路 BALANCED 低频扫描当「喂活源」，**不改判定源**。默认关。 -->
+
+        <div class="kv switch-row"><span class="kv-k">低频扫描保活<br>
+
+          <span style="font-size:12px;color:var(--muted)">保活不住时开：已绑车仍留一路低频扫描喂活进程（略耗电）</span></span>
+
+          <span class="switch" id="swLowScan"><i></i></span></div>
+
+        <!-- ★★★ 3.20.80（乐哥）：「保活设置里加个按钮，隐藏最近任务卡片」。
+             开启 = 桌面入口改用 excludeFromRecents=true 的隐藏 alias，App 不进多任务列表，
+             用户无法从最近任务划掉它（正好堵住「划掉卡片后保活拉不起来」）。
+             代价：只能从桌面图标进入，不能从最近任务划回 —— 这里写清楚。 -->
+        <div class="kv switch-row"><span class="kv-k">隐藏最近任务卡片<br>
+
+          <span style="font-size:12px;color:var(--muted)">开启后 App 不出现在多任务列表，无法误划杀（只能从桌面图标进入）</span></span>
+
+          <span class="switch" id="swHideRecents"><i></i></span></div>
+
+        <div class="hint" id="keepReport" data-keep="1"></div>
+
+        </div><!-- /fold-body -->
+
+      </div>
+
+      <!-- ★★★ 3.16.90（乐哥 2026-10-23）：卡片中心 —— 锁屏媒体卡片通知四钮自定义。
+           ★ 修订：桌面卡片的设置全部撤出 App（按钮自定义在卡片自己的设置页，
+           显示布局固定、无开关）；媒体会话播放/暂停/上一首/下一首不单独配置，
+           一律对齐通知四钮。
+           数据走 WebBridge.cardCfg / setCardCfg（AdvancedConfig "card" 组）。 -->
+      <div class="card foldable folded" id="cardCenterCard">
+        <div class="sec-inline fold-head">卡片中心 · 锁屏媒体卡片</div>
+        <!-- ★★★ 3.16.90 三修（乐哥：「我让你把这个卡片要切换过去，它就是折叠的」）：
+             内容默认折叠，只留标题 + 「折叠」标签；每次进设置页强制收起（见 app.js cardFold）。 -->
+        <div class="fold-body" id="cardCenterBody">
+        <div class="hint">媒体卡片上四颗按钮各执行什么，由这里决定。改完立即生效；锁屏播放器的播放/暂停/上一首/下一首自动对齐这四钮。</div>
+
+        <div class="kv" style="flex-direction:column;align-items:stretch;gap:6px">
+          <div style="font-weight:600;margin-top:4px">通知四钮</div>
+          <label class="fld"><span>键 1（播放 △）</span><select id="mcBtn1" class="mc-sel"></select></label>
+          <label class="fld"><span>键 2（暂停 ⏸）</span><select id="mcBtn2" class="mc-sel"></select></label>
+          <label class="fld"><span>键 3（⏮ 上一首）</span><select id="mcBtn3" class="mc-sel"></select></label>
+          <label class="fld"><span>键 4（⏭ 下一首）</span><select id="mcBtn4" class="mc-sel"></select></label>
+        </div>
+        </div>
+      </div>
+
+      <!-- ★★★ 3.20.64（乐哥 2026-10-30）：「把这三个图标裁剪好 去除边界，更换图标为白色这个，
+           然后把其他两个内置，在设置里面可以更换」。
+           三套都打进包里，点一下换一套；缩略图由原生转 base64 发过来（WebView 引用不了 @mipmap）。
+           ★ 3.20.67 两条补充（乐哥同日）：
+             ① 「让用户能自定义图片」→ 第四项「自定义图片」，点它打开相册选图；
+             ② 「这个标签也是默认折叠的」→ 整卡改 foldable + folded，默认只留标题和当前名字。 -->
+      <div class="card foldable folded" id="iconCard">
+        <div class="sec-inline fold-head">桌面图标<span class="chan-tag ghost" id="tagIcon">读取中</span></div>
+        <div class="fold-body">
+          <div class="hint">点一下换一套。切换后桌面上的旧图标会消失、新图标出现（1~2 秒），这是系统行为，不是装了两个 App。<br>如果切完桌面上一个都没看到 —— 去「应用列表/应用抽屉」里找到 <b>BYD 控车</b>，长按拖回桌面即可（部分桌面不会自动放回原位）。<br><b>自定义图片</b>：系统不允许运行时改启动图标，自定义那张图会用「桌面快捷方式 + 通知大图标 + 媒体卡片封面」三个地方，形状是方的（自动居中裁切）。</div>
+          <div class="icogrid" id="iconGrid"></div>
+          <div class="ble-actions" style="margin-top:10px">
+            <button class="btn btn-ghost" id="btnIconPin">把图标放回桌面</button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ★★★ 3.14.177（用户 2026-10-08：「外观选项这个卡片去掉。因为在 APP 上面的
+
+           标签页是可以控制的，所以这个标签页纯粹是多余」）：卡内那组三选一 chips
+
+           （#chipTheme）**删除**。主题切换的唯一入口 = 顶栏那颗 🌙 图标（#btnTheme）：
+
+           点一下按「跟随系统 → 深色 → 浅色」循环。 -->
+
+
+
+      <!-- ★ 2026-10-09 废弃清理：原「双闪测试」卡片（3.15.0 临时物，过测即撤）已删除。
+
+           结论：双闪状态全链路不可得。 -->
+
+
+
+      <!-- ══════════════════════════════════════════════════════════════════
+
+           ★★★ 3.16.42（乐哥 2026-10-18）：「做一个导出日志的按钮。导出日志的时候，
+
+           顺便把示波器真实的渲染图也导出一张。用户可以直接把图和日志文件给 ai
+
+           让用户可以自己去诊断问题。日志文件要把用户自定义设置也搭配上。
+
+           并且附上这个配置有什么用。」
+
+
+
+           导出内容 = ① 诊断正文（环境 + 你改过的设置 + 全部参数含说明 + 运行日志）
+
+                     ② 示波器**当前画面**（canvas 直接 toDataURL，所见即所得）
+
+                     ③ 一个 zip（一次发全）
+
+           落盘位置：/sdcard/Download/（3.16.66 起；沙盒留一份兜底）
+
+           生成后原生会弹选择框：发图片 / 发日志 / 发 zip。 -->
+
+      <div class="card">
+
+        <div class="sec-inline">导出诊断包</div>
+
+        <div class="hint">
+
+          一键把 <b>运行日志</b> + <b>示波器当前画面</b> + <b>你改过的所有设置（含每项是干什么的）</b>
+
+          打包导出，可以直接发给 AI 帮你看问题。<br>
+
+          想复现问题：先把示波器调到出问题的那个时间点（双指缩放 / 单指拖动），再点导出 —— 导出的就是你看到的这一屏。
+
+        </div>
+
+        <div class="ble-actions" style="margin-top:10px">
+
+          <button class="btn btn-primary" id="btnExportDiag">📤 导出诊断包</button>
+
+        </div>
+
+        <div class="hint" id="diagExportHint" data-keep="1">还没导出过。文件会存到「/sdcard/Download/」（手机/车机文件管理器里的「下载」）。</div>
+
+      </div>
+
+
+
+      <div class="card">
+
+        <div class="sec-inline">关于</div>
+
+        <div class="kv"><span class="kv-k">版本</span><span class="kv-v" id="abVersion">--</span></div>
+
+        <!-- ★★★ 3.14.155：手动「检查更新」入口（自动检查之外的第二条路）。
+
+             自动检查有没有新版本，由作者端放不放 update.json 决定；这里只是让用户想查就查。 -->
+
+        <div class="ble-actions">
+
+          <button class="btn btn-ghost" id="btnCheckUpdate">🔄 检查更新</button>
+
+        </div>
+
+        <div class="hint" id="updateHint" data-keep="1">启动时自动检查一次；有新版本会在这里和通知里提示（<b>不强制更新</b>）。</div>
+
+        <div class="kv"><span class="kv-k">性质</span><span class="kv-v">个人测试版</span></div>
+
+        <div class="kv"><span class="kv-k">制作者</span><span class="kv-v">乐哥</span></div>
+
+        <!-- ★★★ 3.20.30（乐哥 2026-10-27）：「XXD_D这是我的抖音号 加入关于作者」。 -->
+        <!-- ★★★ 3.20.68（乐哥 2026-10-30）：「好多人反馈说你添加那个抖音ID他找不到。点击一下复制」
+             抖音号是带下划线的 `XXD_D`，用户照着屏幕念/敲几乎必错（`_` 看成空格、大小写拼错），
+             搜不到人 ⇒ **整行可点**，点一下抄进剪贴板（走原生 ClipboardManager，见 WebBridge.copyText）。 -->
+        <div class="kv kv-cp" data-copy="XXD_D" data-copy-pic="1">
+          <span class="kv-k">抖音</span>
+          <span class="kv-v" id="abDouyin">XXD_D<em class="cp-tag">点击复制</em></span>
+        </div>
+
+        <div class="kv"><span class="kv-k">联系方式</span><span class="kv-v">3300585940@qq.com</span></div>
+
+        <!-- ★★★ 3.14.177（用户 2026-10-08：「关于作者这个标签页设置成一个按钮。
+
+             点击关于作者之后再弹出下面整个一长串的这些文字」）：
+
+             那几段长文（原来的 `.about-author` 块）**移进弹层**（见文件末尾 sheetAbout），
+
+             这里只留一枚按钮。设置页因此短了一屏，想看的用户点一下就能看到全文。 -->
+
+        <div class="ble-actions" style="margin-top:10px">
+
+          <button class="btn btn-primary" id="btnAboutAuthor">关于作者</button>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ★★★ 3.15.56（用户 2026-10-11「加入更新日志吧。更新完之后就不显示更新公告。用户好多都不懂了」）：
+
+           设置页新增「更新日志」卡 —— 把原来只塞在更新弹层里的内容，改成**随时可查、离线可看**。
+
+           ★★★ 3.15.61（用户「以后发布历史更新公告里面。添加进去。累计添加：最上面是最新的。最下面是最旧的」）：
+
+           改为**累计版本历史**列表（新→旧），内容来自前端常量 APP_CHANGELOG（数组头部=最新版）。
+
+           ★★★ 3.15.90（用户 2026-10-13「取消历史版本下载卡片，改成每条日志下面附带下载」）：
+
+           原来的「历史版本」独立卡片已删；下载能力并入本卡 —— 服务器上有安装包的版本，
+
+           日志条下面自动露出「⬇ 下载」按钮（当前版本 / 没包的版本不显示）。 -->
+
+      <div class="card">
+
+        <div class="sec-inline">更新日志</div>
+
+        <div class="kv"><span class="kv-k">当前版本</span><span class="kv-v" id="chgVer">--</span></div>
+
+        <div class="log chg" id="chgBody">--</div>
+
+        <div class="hint">按版本从新到旧累计记录（<b>最上面是最新版</b>）。有新版本时 App 只提醒一次，装好之后就不再打扰，想回顾来这张卡看。<b>想装回老版本，点日志条下面的「⬇ 下载」</b>（安卓需先在系统里卸载本 App 再装）。</div>
+
+      </div>
+
+
+
+    </section>
+
+
+
+
+    <!-- ═══════════════════ ⑥ WiFi 与定时（3.20.68，从设置页「后台扫描抑制」进入）═══════════════════ -->
+    <section class="page" id="page-bgstop">
+
+      <div class="bgp-head">
+        <button class="bgp-back" id="btnBgBack">‹ 返回</button>
+        <span class="bgp-title">WiFi 与定时</span>
+      </div>
+
+      <div class="hint" style="margin-bottom:10px">
+        两条互相独立的「后台停扫」条件，<b>任一命中就停</b>：<br>
+        · <b>WiFi 场景</b>：连上这个 WiFi 且信号不弱于该场景自己的门槛；<br>
+        · <b>定时场景</b>：在这个时段内（可跨夜，如 23:00 → 06:30）。<br>
+        停扫期间不扫蓝牙、不做自动解锁/锁车，<b>后台动作全停</b>，这是最省电的状态。
+      </div>
+
+      <div class="card">
+        <div class="sec-inline">WiFi 场景<span class="chan-tag ghost" id="tagWifiCnt">1</span></div>
+        <div class="tune-tip">每个场景一个 WiFi + 一个专属门槛。家里路由器信号强、公司 AP 弱，各设各的，不会一头误停一头白扫。</div>
+        <div id="wifiSceneList" class="scenelist"></div>
+        <div class="ble-actions" style="margin-top:10px">
+          <button class="btn btn-ghost" id="btnAddWifi">＋ 添加 WiFi 场景</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-inline">定时场景<span class="chan-tag ghost" id="tagTimeCnt">1</span></div>
+        <div class="tune-tip">到点自动恢复扫描；多段之间互相独立，可以配成「夜里 + 午休」两段。</div>
+        <div id="timeSceneList" class="scenelist"></div>
+        <div class="ble-actions" style="margin-top:10px">
+          <button class="btn btn-ghost" id="btnAddTime">＋ 添加定时场景</button>
+        </div>
+      </div>
+
+      <!-- ★★★ 3.21.15（乐哥 2026-11-04）：「加入手机充电关闭采集开关 默认关
+           和定时wifi功能一样 不充电就开始采集」 -->
+      <div class="card">
+        <div class="sec-inline">充电时停止采集</div>
+        <div class="kv switch-row"><span class="kv-k">充电就停，拔掉就恢复<br>
+          <span style="font-size:12px;color:var(--muted)">默认关。开了之后：插着充电器时后台不采集（最省电）；拔掉立刻恢复扫描与自动解锁。</span></span>
+          <span class="switch" id="swChargePause"><i></i></span></div>
+        <div class="tune-tip" style="margin-top:6px">
+          与上面两条（WiFi / 定时）并列，<b>任一命中就停</b>。停采期间插拔充电器即时生效；
+          若系统吞广播，15 分钟内也会自己复核一次。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-inline">现在</div>
+        <div class="bgstop-v" id="bgSigLine">读取中…</div>
+        <div class="tune-tip" style="margin-top:6px">
+          停扫期间复核走轻量广播（只拉起进程、不启服务、不连 MQTT），且连续几次结论不变会自己放宽到 10 / 20 分钟；
+          信号贴到门槛边上时保持 5 分钟一次，不会把自动解锁掐掉。
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+
+
+  <!-- ═══════════ 底部导航 ═══════════ -->
+
+  <nav class="navbar">
+
+    <!-- ★ 3.14.23 用户报「设置这个地方图标显示不全」——
+
+         实测四个图标在 24×24 视窗里的墨水包围盒（栅格化量的）差异很大：
+
+             车辆 14.1×14.1 · 蓝牙 20.3×17.1 · 行程 16.1×16.1 · 设置 20.6×18.0
+
+         齿轮是最大最重的一个（右边只剩 1.2 单位余量，其他都有 4~5），
+
+         24px 实际渲染时牙齿间隙被抗锯齿糊平 → 看着就是「糊掉了 / 显示不全」。
+
+         统一做法：每个 path 外面包一个 <g class="nav-ico">，按各自墨水中心做
+
+         「居中 + 等比缩放到 ~17 单位宽」，四个图标光学尺寸拉齐（齿轮取 16.9，略小一点，
+
+         因为它本身最密）。只动 SVG，不动 path 数据，随时可回退。 -->
+
+    <button class="nav-item active" data-page="home">
+
+      <svg viewBox="0 0 24 24"><g class="nav-ico" transform="translate(12,12) scale(1.1) translate(-11.955,-11.955)"><path d="M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11v7a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H8v1a1 1 0 01-1 1H6a1 1 0 01-1-1v-7zm2.4-1h9.2l-1.1-3H8.5l-1.1 3zM8 14a1.3 1.3 0 100-2.6A1.3 1.3 0 008 14zm8 0a1.3 1.3 0 100-2.6A1.3 1.3 0 0016 14z"/></g></svg>
+
+      <span>车辆</span>
+
+    </button>
+
+    <button class="nav-item" data-page="ble">
+
+      <svg viewBox="0 0 24 24"><g class="nav-ico" transform="translate(12,12) scale(0.84) translate(-11.955,-10.455)"><path d="M12 2l5 5-3.6 3.6L17 14l-5 5v-6.2l-3.4 3.4-1.2-1.2L11.6 11 7.4 6.8 8.6 5.6 12 9V2zm2 5.8L13.2 7 14 6.2l0 1.6zm-0.8 9.4L14 18l-0.8-0.8v0zM17.5 17.5a7 7 0 000-11l1.4-1.4a9 9 0 010 13.8l-1.4-1.4zM6.5 6.5a7 7 0 000 11l-1.4 1.4a9 9 0 010-13.8l1.4 1.4z"/></g></svg>
+
+      <span>蓝牙</span>
+
+    </button>
+
+    <button class="nav-item" data-page="trips">
+
+      <svg viewBox="0 0 24 24"><g class="nav-ico" transform="translate(12,12) scale(1.054) translate(-11.955,-11.955)"><path d="M4 20V10h3v10H4zm6.5 0V4h3v16h-3zM17 20v-7h3v7h-3z"/></g></svg>
+
+      <span>行程</span>
+
+    </button>
+
+    <!-- ★★★ 3.15.31（用户 2026-10-10）：「第四个标签页不能取消。改名为账户。」
+
+         底部导航**恢复第 4 格 = 账户**（车辆 / 蓝牙 / 行程 / 账户）。
+
+         账户页（#page-account）= 账户（比亚迪账号登录）/ 小爱（小爱卡片）/ 操作日志（控车台账）；
+
+         「自动化 / 自动控车 / 保活 / 关于」仍收在顶栏 ⚙️（#btnSettings）
+
+         进入的 #page-settings 里，平时不占底部一格。 -->
+
+    <button class="nav-item" data-page="account">
+
+      <svg viewBox="0 0 24 24"><g class="nav-ico" transform="translate(12,12) scale(1.05) translate(-11.955,-11.955)"><path d="M12 12.6a4.3 4.3 0 100-8.6 4.3 4.3 0 000 8.6zm0 1.8c-4.3 0-7.7 2.3-7.7 5.1 0 .8.6 1.3 1.4 1.3h12.6c.8 0 1.4-.5 1.4-1.3 0-2.8-3.4-5.1-7.7-5.1z"/></g></svg>
+
+      <span>账户</span>
+
+    </button>
+
+  </nav>
+
+  <!-- ★★★ 3.16.x（用户 2026-10-15 要求「主界面账户标签底下显示当前版本」）：
+
+       常驻行，不随标签切换消失；用户截图报问题时一眼可辨版本。 -->
+
+  <div id="appVer" style="flex:none;text-align:center;color:#8a8f98;font-size:10.5px;line-height:1;padding:5px 0 6px;background:var(--bg2);border-top:1px solid var(--line)">版本 --</div>
+
+</div>
+
+
+
+<!-- ★★★ 2026-10-11（用户要求「恢复扫码入口」）：恢复「🔑 蓝牙钥匙授权」出码弹层
+
+     （`#sheetWatchQr` + `#wqQrImg/#wqQrBox/#wqLog/#wqSteps`，原 3.15.13 整块删除）。
+
+     App 内闭环 · 全本地跑，只跟比亚迪官方云端通信：出码 → 官方 App 扫码确认 → 钥匙写入本机。 -->
+
+<div class="sheet" id="sheetWatchQr" hidden>
+
+  <div class="sheet-card" style="max-height:92vh;overflow-y:auto">
+
+    <div class="sheet-title">🔑 蓝牙钥匙授权</div>
+
+    <div class="sheet-sub" id="wqSub">正在准备…</div>
+
+
+
+    <div class="wq-qrbox" id="wqQrBox" hidden>
+
+      <img id="wqQrImg" alt="扫码授权二维码">
+
+    </div>
+
+
+
+    <div class="wq-steps" id="wqSteps">
+
+      <div class="wq-step"><i>1</i><span>手机上打开 <b>比亚迪官方 App</b></span></div>
+
+      <div class="wq-step"><i>2</i><span>用「扫一扫」扫上面这张码</span></div>
+
+      <div class="wq-step"><i>3</i><span>在官方 App 里点 <b>确认授权</b></span></div>
+
+      <div class="wq-step"><i>4</i><span>回到本页，钥匙自动写入本机（无需其他操作）</span></div>
+
+    </div>
+
+
+
+    <div class="hint" id="wqHint" data-keep="1">二维码会自动换新，请勿使用旧截图。</div>
+
+
+
+    <div class="sheet-actions">
+
+      <button class="btn btn-ghost" id="btnWqCancel">取消</button>
+
+      <button class="btn btn-primary" id="btnWqRetry">重新出码</button>
+
+    </div>
+
+    <pre class="log" id="wqLog">等待中…</pre>
+
+  </div>
+
+</div>
+
+
+
+<!-- ★★★ 3.14.180（用户 2026-10-08：「车型 长按3秒后就能自定义」）：
+
+     长按顶栏车型名 3 秒打开这里。改完只在本机显示（存原生 CredentialManager），
+
+     不参与任何协议/判定；「恢复默认」= 清掉自定义值，回落云端下发的车型名。 -->
+
+<div class="sheet" id="sheetBtnSound" hidden>
+
+  <div class="sheet-card">
+
+    <div class="sheet-title">🔊 控制按钮音效</div>
+
+    <div class="sheet-sub">长按主页任意控制按钮弹出此面板；只有「默认」和「自定义」两种。</div>
+
+    <!-- ★ 3.20.1：每个按钮的音效独立保存，这里明确显示正在配哪个按钮 -->
+    <div class="hint" id="sndTarget" style="margin:10px 0 8px;font-weight:600" data-keep="1"></div>
+
+    <div class="snd-grid" id="sndGrid">
+      <button class="snd-item" data-snd="default">🔔 默认音效</button>
+      <button class="snd-item" data-snd="custom">🎵 自定义音效</button>
+    </div>
+
+    <div class="hint" id="sndCustomName" style="display:none" data-keep="1"></div>
+
+    <label class="fld" style="margin-top:12px"><span>音量 <b id="sndVolVal">70</b>%</span>
+      <input type="range" id="sndVol" min="0" max="100" value="70">
+    </label>
+
+    <div class="hint">点「自定义音效」从手机里挑一段音频；松手滑条试听当前音效。设置只存本机。</div>
+
+    <div class="sheet-actions">
+      <button class="btn btn-primary" id="btnSndClose">完成</button>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="sheet" id="sheetCarName" hidden>
+
+  <div class="sheet-card">
+
+    <div class="sheet-title">🚗 自定义车型名称</div>
+
+    <div class="sheet-sub">起个你喜欢的名字，只显示在本机（不影响车况与控车）。</div>
+
+    <label class="fld"><span>车型名称</span><input id="cfCarName" maxlength="24" placeholder="例如：我的小迪 / 秦L / 小白" autocomplete="off"></label>
+
+    <div class="hint" id="carNameHint" data-keep="1">最多 24 个字；留空保存 = 自动显示「车型 + 年份款」（例如 秦PLUS DM-i 24款）。</div>
+
+    <div class="sheet-actions">
+
+      <button class="btn btn-ghost" id="btnCarNameCancel">取消</button>
+
+      <button class="btn btn-primary" id="btnCarNameSave">保存</button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ★★★ 3.16.30（乐哥 2026-10-17）：「可以自定义名称和执行命令，名称做成输入框，
+
+     执行命令做成选择框。」新建 / 编辑自定义巴法云卡片的弹层。
+
+     ⚠ 用页面内 .sheet 而不是 window.prompt —— WebView 没实现 onJsPrompt，
+
+       系统 prompt 会直接返回 null（这类机型必踩）。 -->
+
+<div class="sheet" id="sheetCustomCard" hidden>
+
+  <div class="sheet-card" style="max-height:92vh;overflow-y:auto">
+
+    <div class="sheet-title" id="customSheetTitle">➕ 自定义卡片</div>
+
+    <div class="sheet-sub">填一个名字、选一条命令。点「建立卡片」后这张卡会出现在下面的列表里，
+
+      勾上它再点「开启所选」，才会真正建到巴法云。</div>
+
+    <label class="fld"><span>卡片名称</span><input id="cfCustomName" maxlength="12" placeholder="例如：回家模式 / 提前开空调" autocomplete="off"></label>
+
+    <label class="fld"><span>执行命令</span><select id="cfCustomCmd"></select></label>
+
+    <div class="hint" id="customHint" data-keep="1">最多 10 张自定义卡片；名称最多 12 个字。</div>
+
+    <div class="sheet-actions">
+
+      <button class="btn btn-ghost" id="btnCustomCancel">取消</button>
+
+      <button class="btn btn-primary" id="btnCustomSave">建立卡片</button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ★★★ 3.14.177：关于作者弹层（设置页「关于」卡片里那枚按钮打开）。
+
+     内容就是从卡片里搬出来的原 `.about-author` 全文，一字未改（除了补齐联网点口径）。 -->
+
+<div class="sheet" id="sheetAbout" hidden>
+
+  <div class="sheet-card" style="max-height:86vh;overflow-y:auto">
+
+    <div class="sheet-title">关于作者</div>
+
+    <div class="about-author">
+
+      <p><b>关于作者</b></p>
+
+      <p>本项目<b>完全公益免费</b>，不收取任何费用，也没有任何隐藏收费项。</p>
+
+      <p>App <b>不会偷偷收集任何东西</b>：不读通讯录、相册、短信，也不记录你的位置轨迹。
+
+         你的比亚迪账号、蓝牙钥匙等敏感信息，全部只保存在<b>你自己的手机</b>上（加密存储），
+
+         控车时是 App <b>直接跟比亚迪官方云端通信</b>，不经过作者。</p>
+
+      <!-- ★★★ 3.14.155：加了「自动检测更新」之后，旧口径（声称数据完全不落任何服务器）已不成立
+
+           —— 自动检查会主动连作者端。必须如实写清联网点，别糊弄用户。
+
+           ★★★ 3.14.166：又加了「老钥匙用户自动上传日志」—— 联网点由两处变三处，照样如实写。
+
+           ★★★ 3.14.173：自动上传的范围由「仅老钥匙用户」扩到**所有用户**，
+
+             并新增「解锁失败（蓝牙/云端）当场触发」。口径同步改写，别让文案落后于实现。
+
+           ★★★ 3.14.177：运行日志的**前台卡片已删**（用户要求），但自动上传照旧 ——
+
+             文案里不再提「点上传日志」这个已不存在的按钮，只说自动上传。 -->
+
+      <p>只有两处会连到作者这边，而且<b>都跟你讲清楚了</b>：<br>
+
+         ·「日志自动上传」——<b>所有用户</b>：启动后、之后每天一次；若当天还没传过，
+
+           <b>解锁失败</b>（蓝牙 / 云端）时会提前上传那一次，<b>全天最多一次</b>。
+
+           上传的日志会带<b>设备信息（手机机型 / 系统）与车机蓝牙标识</b>，仅用于<b>区分不同用户</b>；
+
+           <b>手机号、车架号等隐私一律打码</b>（不含账号密码）。用来帮作者修「解锁慢 / 解锁不了」的问题；<br>
+
+         ·「检查更新」——启动时自动查一次有没有新版本（<b>只读取</b>版本号和更新说明，不上传任何东西），
+
+           有新版会提醒你，<b>更不更新完全随你</b>。</p>
+
+      <p>除此之外，没有任何后台上报。代码干什么、数据去哪，全部清清楚楚。</p>
+
+      <p>如果它帮到了你，欢迎分享给身边的朋友。有问题或建议随时联系我：
+
+         <b>3300585940@qq.com</b><br>
+
+         <!-- ★★★ 3.20.30（乐哥 2026-10-27）：「XXD_D这是我的抖音号 加入关于作者」。 -->
+
+         <!-- ★ 3.20.68：同一个号，弹层里也给一处可点复制（这里没有 kv 格子，用行内样式）。 -->
+         抖音：<b class="cp-inline" data-copy="XXD_D" data-copy-pic="1">XXD_D<em class="cp-tag">点击复制</em></b>（抖音搜这个号就能找到我，更新和使用问题也会发在上面）</p>
+
+    </div>
+
+    <div class="sheet-actions">
+
+      <button class="btn btn-primary" id="aboutClose">我知道了</button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ★★★ 3.20.68（乐哥 2026-10-30）：「把这张图片美化一下。点击作者的抖音ID之后，复制的同时弹出这个图片」
+     ── 抖音名片弹层 ──
+     图是 assets/ui/douyin-card.webp（1125×1680，90KB）。
+     为什么是图片不是 HTML 画的：
+       中间那圈抖音码是**原图裁下来的位图**，重画会扫不出来；而外围背景/文字/图标重画一遍
+       比原图清晰得多（原图文字是糊的）。⇒ 「二维码保留 + 其余重排」最后导出成一张位图最稳。
+     点「保存到相册」走原生 saveAssetImage，把这张 webp 写进系统相册（用户可以发给别人扫）。 -->
+<div class="sheet" id="sheetDouyin" hidden>
+
+  <div class="sheet-card dy-card">
+
+    <img class="dy-pic" id="dyPic" src="douyin-card.webp" alt="抖音名片">
+
+    <div class="sheet-actions">
+
+      <button class="btn" id="dySave">保存图片</button>
+
+      <button class="btn btn-primary" id="dyClose">关闭</button>
+
+    </div>
+
+    <div class="hint" style="margin-top:10px">抖音号已复制到剪贴板 · 也可以长按上面这张图保存</div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ★★★ 3.14.155：更新弹层（作者端放行了 update.json 且版本比本机新时才弹）★★★
+
+     三条硬约束都体现在这里：
+
+       · 带更新内容 —— 正文就是 update.json 的 changelog（按行渲染）；
+
+       · 不强制     —— 只有「稍后再说 / 立即更新」两个按钮，点稍后即不再自动打扰；
+
+       · 作者可撤回 —— 作者把 update.json 删掉，这一层就再也不会出现。 -->
+
+<div class="sheet" id="sheetUpdate" hidden>
+
+  <div class="sheet-card" style="max-height:88vh;overflow-y:auto">
+
+    <div class="sheet-title">🎉 有新版本可用</div>
+
+    <div class="sheet-sub" id="updSub">正在读取…</div>
+
+    <pre class="log" id="updLog" style="max-height:42vh;white-space:pre-wrap">—</pre>
+
+    <div class="hint" id="updHint" data-keep="1">更新完全自愿：不更新也能照常用，功能不会因为版本旧被停用。</div>
+
+    <div class="sheet-actions">
+
+      <button class="btn btn-ghost" id="btnUpdLater">稍后再说</button>
+
+      <button class="btn btn-primary" id="btnUpdGo">立即更新</button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+
+
+
+
+<!-- ★★★ 客户需求（2026-10-29）：控车二次确认弹窗（防误触）。
+     由 app.js 的 cfmAsk() 驱动，总开关 = 首页「车辆控制」标题行的 #swConfirmCmd（默认关）；样式见 styles.css 的 .cfm-*。 -->
+<div class="cfm" id="cfmSheet" hidden>
+  <div class="cfm-mask" id="cfmMask"></div>
+  <div class="cfm-card" role="dialog" aria-modal="true" aria-labelledby="cfmTitle">
+    <div class="cfm-ico" id="cfmIco">🔒</div>
+    <div class="cfm-title" id="cfmTitle">确认执行</div>
+    <div class="cfm-sub" id="cfmSub"></div>
+    <div class="cfm-acts">
+      <button class="cfm-btn ghost" id="cfmCancel" type="button">取消</button>
+      <button class="cfm-btn go" id="cfmOk" type="button">确认</button>
+    </div>
+    <div class="cfm-tip">可在「设置 → 控车防误触」里关掉这个确认</div>
+  </div>
+</div>
+
+<!-- ═══ 3.20.61：到家停扫 WiFi 选择（多选，来源=原生 wifiCandidates）═══ -->
+<div class="sheet" id="sheetBgWifi" hidden>
+
+  <div class="sheet-card">
+
+    <div class="sheet-title">到家停扫的 WiFi</div>
+
+    <div class="sheet-sub">连上这些 WiFi 时自动停掉后台扫描，断开自动恢复，可多选。</div>
+
+    <div class="wlist" id="wifiList"></div>
+
+    <input class="wmanual" id="wifiManual" type="text" placeholder="也可以手动输入 WiFi 名，回车添加" autocomplete="off">
+
+    <div class="sheet-actions three">
+      <button class="btn btn-ghost" id="btnWifiCancel" type="button">取消</button>
+      <button class="btn btn-ghost" id="btnWifiClear" type="button">清空</button>
+      <button class="btn btn-primary" id="btnWifiSave" type="button">保存</button>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ═══ 3.20.61：定时停扫时段（自绘滚轮，跟随 App 主题）═══ -->
+<div class="sheet" id="sheetBgSched" hidden>
+
+  <div class="sheet-card">
+
+    <div class="sheet-title">定时停扫时段</div>
+
+    <div class="sheet-sub">这段时间内停掉后台扫描，出段自动恢复；可以跨夜，比如 23:00 → 06:30。</div>
+
+    <div class="tseg">
+      <button class="tseg-b on" id="tsegStart" type="button">23:00</button>
+      <span class="tseg-ar">→</span>
+      <button class="tseg-b" id="tsegEnd" type="button">06:30</button>
+    </div>
+
+    <div class="tpick">
+      <div class="tpick-band"></div>
+      <div class="tpick-col" id="tpH"></div>
+      <div class="tpick-colon">:</div>
+      <div class="tpick-col" id="tpM"></div>
+    </div>
+
+    <div class="sheet-actions three">
+      <button class="btn btn-ghost" id="btnSchedCancel" type="button">取消</button>
+      <button class="btn btn-ghost" id="btnSchedClear" type="button">不用定时</button>
+      <button class="btn btn-primary" id="btnSchedSave" type="button">保存</button>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 👇 终极版：按需拖拽 + 全局滑块过渡 -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. 动态调整车型名字号（修复了父元素被撑爆导致计算失效的问题）
+    const carNameEl = document.getElementById('carName');
+    if (carNameEl) {
+      const adjustCarNameFont = () => {
+        carNameEl.style.fontSize = '24px';
+        // 获取卡片内容容器的真实宽度作为计算基准
+        const container = carNameEl.closest('.hero-body');
+        if (!container) return;
+        
+        const maxWidth = container.offsetWidth * 0.50; // 车型名最多占 50% 宽度
+        let currentSize = 24;
+        
+        // 不断缩小直到宽度满足
+        while (carNameEl.scrollWidth > maxWidth && currentSize > 14) {
+          currentSize -= 1;
+          carNameEl.style.fontSize = currentSize + 'px';
+        }
+      };
+      
+      adjustCarNameFont();
+      // 字体加载或延迟渲染时兜底再算两次
+      setTimeout(adjustCarNameFont, 200);
+      setTimeout(adjustCarNameFont, 800);
+      window.addEventListener('resize', adjustCarNameFont);
+      new MutationObserver(adjustCarNameFont).observe(carNameEl, { childList: true, characterData: true, subtree: true });
+    }
+
+    // 2. 禁止主体区域的左右滑动
+    const content = document.querySelector('.content');
+    if (content) {
+      let startX = 0, startY = 0;
+      content.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+
+      content.addEventListener('touchmove', (e) => {
+        const deltaX = e.touches[0].clientX - startX;
+        const deltaY = e.touches[0].clientY - startY;
+        if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) {
+          if (e.cancelable) e.preventDefault();
+          e.stopPropagation();
+        }
+      }, { capture: true, passive: false });
+      
+      // 监听内容区滚动，切换顶栏毛玻璃
+      const topbar = document.querySelector('.topbar');
+      if (topbar) {
+        content.addEventListener('scroll', () => {
+          if (content.scrollTop > 10) {
+            topbar.classList.add('scrolled');
+          } else {
+            topbar.classList.remove('scrolled');
+          }
+        }, { passive: true });
+      }
+    }
+
+    // 3. 底栏交互
+    const navbar = document.querySelector('.navbar');
+    const navItems = Array.from(document.querySelectorAll('.navbar .nav-item'));
+    if (!navbar) return;
+
+    let currentIndex = navItems.findIndex(el => el.classList.contains('active'));
+    if (currentIndex === -1) currentIndex = 0;
+    navbar.style.setProperty('--nav-index', currentIndex);
+
+    navItems.forEach((item, index) => {
+      let startX = 0, startY = 0;
+      let isTouching = false;
+      let isClick = false;
+      let isDragging = false;
+
+      item.addEventListener('touchstart', (e) => {
+        isTouching = true;
+        isClick = true;
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+
+        navbar.classList.add('navbar-pressed');
+
+        if (item.classList.contains('active')) {
+          isDragging = true;
+          navbar.classList.add('slider-pressed'); 
+          navbar.style.setProperty('--drag-offset', '0px');
+          navbar.style.setProperty('--drag-offset-y', '0px');
+          item.style.transition = 'none';
+          item.style.transform = 'scale(0.95)';
+        }
+        e.stopPropagation();
+      }, { passive: false, capture: true });
+
+      item.addEventListener('touchmove', (e) => {
+        if (!isTouching) return;
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - startX;
+        const deltaY = touch.clientY - startY;
+
+        if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) isClick = false;
+        if (!isDragging) return; 
+
+        if (e.cancelable) e.preventDefault();
+
+        navbar.style.transition = 'none';
+
+        const dampX = 0.2;
+        const maxDeltaX = 4;
+        let moveX = Math.max(-maxDeltaX, Math.min(maxDeltaX, deltaX * dampX));
+
+        const dampY = 0.2;
+        const maxDeltaY = 6;
+        let moveY = Math.max(-maxDeltaY, Math.min(maxDeltaY, deltaY * dampY));
+
+        navbar.style.setProperty('--drag-offset', `${moveX}px`);
+        navbar.style.setProperty('--drag-offset-y', `${moveY}px`);
+        item.style.transform = `translate(${moveX}px, ${moveY}px) scale(0.95)`;
+        e.stopPropagation();
+      }, { passive: false, capture: true });
+
+      const resetState = () => {
+        if (!isTouching) return;
+        isTouching = false;
+        isDragging = false;
+
+        navbar.style.transition = '';
+        
+        navbar.classList.remove('navbar-pressed');
+        navbar.classList.remove('slider-pressed');
+        navbar.style.setProperty('--drag-offset', '0px');
+        navbar.style.setProperty('--drag-offset-y', '0px');
+        
+        item.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.2, 0.64, 1)';
+        item.style.transform = 'scale(1)';
+
+        if (isClick) {
+          item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+          navbar.style.setProperty('--nav-index', index);
+        }
+        isClick = false;
+      };
+
+      item.addEventListener('touchend', (e) => { resetState(); e.stopPropagation(); }, { passive: true, capture: true });
+      item.addEventListener('touchcancel', (e) => { resetState(); e.stopPropagation(); }, { passive: true, capture: true });
+    });
+  });
+</script>
+
+<script src="app.js"></script>
+</body>
+</html>

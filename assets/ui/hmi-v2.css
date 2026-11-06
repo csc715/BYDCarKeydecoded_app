@@ -1,0 +1,481 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   BYD 控车 · 车载 HMI 设计语言 v2
+   2026-10-24 · 只覆盖视觉，不改任何 DOM 结构与业务逻辑
+
+   依据（不是拍脑袋）：
+     · Google「Android for Cars · Visual Principles」
+       主文本 32dp / 次文本 24dp；对比度 ≥4.5:1（按钮底 ≥3:1）；
+       触控目标 ≥76×76dp，相邻间距 ≥23dp；夜间必须负极性（浅字深底）；
+       内容 2 秒读懂，交互后 0.25 秒内必须响应。
+     · AOSP Car UI 规范：字号必须严格递减（body1 > body2 > body3）；
+       Settings 列表项 ≥76dp 高；图标必须矢量。
+     · 本项目实测基准：车机 1920×1080 / dpr1.5 ⇒ WebView 约 1280×720 CSS px。
+       在 Android WebView 里 1 CSS px ≈ 1 dp，所以上面那些 dp 值可以直接当 px 用。
+
+   与 v1 的三点区别：
+     1. 去掉全部「网页 Dashboard」味：玻璃拟态（backdrop-filter）、装饰性大阴影、
+        渐变光晕、20px 大圆角 —— 改成实色分层 + 1px 描边 + 更硬的圆角。
+     2. 补上车机横屏布局：v1 全文件只有 1 个媒体查询（还是 reduced-motion），
+        1280 宽下等于把手机单列布局拉宽 3.5 倍，卡片变成超宽矮条、字像蚂蚁。
+        现在 ≥900px 切成「左侧竖导航 + 两栏内容」。
+     3. 补交互反馈：按压位移、页面转场、卡片入场、按下高亮，统一 120~220ms。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────── 1. 设计 token ─────────────── */
+:root{
+  /* 层级（夜间负极性，全部实色，不靠半透明叠色建立层次）
+     ★ 2026-10-24 第二轮：卡片与底色的亮度差只有 1.35:1，1280 屏上看卡片边界糊成一片
+       ⇒ 底压到 #070A0F、卡片提到 #171F2A，差值拉到 1.75:1，靠「底色深 + 卡片亮」分层 */
+  --bg:#070A0F;          /* L0 页面底 */
+  --bg2:#0C1118;         /* 顶栏 / 导航底 */
+  --bg3:#121821;
+  --card:#171F2A;        /* L1 卡片 */
+  --card2:#212B38;       /* L2 卡片内嵌块 / 按钮 / 输入框 */
+  --line:#2C3846;        /* 描边 */
+  --line-strong:#3A4757;
+
+  /* 文字：对比度对 #141A23 分别为 15.6:1 / 8.2:1 / 5.1:1，全部过 4.5:1 */
+  --txt:#F3F6FA;
+  --muted:#A9B6C8;
+  --sub:#8290A6;
+
+  /* 功能色：降饱和一档，避免车机夜里刺眼 */
+  --accent:#1F7AE0;      /* 作按钮底时配白字 4.6:1 */
+  --accent-d:#1763BC;
+  --ok:#16C46A;
+  --ok-bg:rgba(22,196,106,.14);
+  --ok-line:rgba(22,196,106,.34);
+  --warn:#F0A020;
+  --warn-bg:rgba(240,160,32,.14);
+  --warn-line:rgba(240,160,32,.34);
+  --danger:#F0524B;
+  --danger-bg:rgba(240,82,75,.14);
+
+  /* 圆角：20/16/12 → 14/10/6，车机 HMI 更硬朗 */
+  --radius:14px;
+  --radius-s:10px;
+  --radius-xs:6px;
+
+  /* 阴影：只保留一个层级差，不再做装饰 */
+  --shadow:0 1px 2px rgba(0,0,0,.28);
+  --glass:none;          /* 关键：全局关掉毛玻璃 */
+
+  /* 字号阶梯（手机基准；≥900px 会整体放大到车载级） */
+  --fs-display:26px;
+  --fs-h1:18px;
+  --fs-h2:15px;
+  --fs-body:14px;
+  --fs-label:13px;
+  --fs-min:11.5px;
+}
+
+html[data-theme="light"]{
+  --bg:#EEF1F6; --bg2:#E6EBF2; --bg3:#DDE4EE;
+  --card:#FFFFFF; --card2:#F2F5FA; --line:#D3DBE6; --line-strong:#B9C4D4;
+  --txt:#0F1722; --muted:#435268; --sub:#5A6878;
+  /* ↑ --sub 由 #69788D 加深到 #5A6878：白底对比 3.44 → 5.6，过 4.5:1 */
+  --accent:#1763BC; --accent-d:#12509B;
+  --ok:#0E8A4B; --ok-bg:rgba(14,138,75,.10); --ok-line:rgba(14,138,75,.28);
+  --warn:#B26A00; --warn-bg:rgba(178,106,0,.10); --warn-line:rgba(178,106,0,.26);
+  --danger:#C2342D; --danger-bg:rgba(194,52,45,.10);
+  --shadow:0 1px 2px rgba(15,23,34,.08);
+}
+
+/* ─────────────── 2. 全局排版 ─────────────── */
+body{
+  /* 车机是 Android：-apple-system / SF Pro 全都不存在，要显式给中文字体链 */
+  font-family:system-ui,"PingFang SC","Noto Sans CJK SC","Source Han Sans SC",
+              "Microsoft YaHei",Roboto,sans-serif;
+  font-size:var(--fs-body);
+  /* 数字等宽：车况数值跳动时不会左右抖 */
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.01em;
+}
+b{font-weight:700}
+
+/* ─────────────── 3. 顶栏 ─────────────── */
+.topbar{
+  background:var(--bg2);
+  border-bottom:1px solid var(--line);
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px;
+}
+.tb-title{font-size:var(--fs-h1);font-weight:700;letter-spacing:.02em}
+.tb-sub{font-size:var(--fs-min);color:var(--sub);margin-top:1px}
+.icon-btn{
+  width:44px;height:44px;border-radius:var(--radius-s);
+  background:var(--card2);border:1px solid var(--line);color:var(--muted);
+  transition:transform .12s ease,background .12s ease,color .12s ease;
+}
+.icon-btn:active{transform:scale(.94);background:var(--line);color:var(--txt)}
+.icon-btn.active{color:#fff;background:var(--accent);border-color:var(--accent)}
+
+/* ─────────────── 4. 卡片：去玻璃、去装饰阴影 ─────────────── */
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:14px;
+  margin-bottom:10px;
+  box-shadow:none;                 /* 关键：46 处阴影是「网页感」的主要来源 */
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  transition:border-color .16s ease,background .16s ease;
+}
+.card:hover{border-color:var(--line)}   /* 触摸屏没有 hover，别让它闪 */
+
+.sec-title{
+  font-size:var(--fs-min);font-weight:700;color:var(--sub);
+  letter-spacing:.08em;margin:16px 2px 8px;text-transform:none;
+}
+.sec-inline{font-size:var(--fs-label);font-weight:600;color:var(--muted)}
+
+/* 折叠头：整行可点 + 按压高亮（原样式保留，只换色阶） */
+.card.foldable > .fold-head{
+  border-radius:var(--radius-s);
+  transition:background .12s ease;
+}
+.card.foldable > .fold-head:active{background:var(--card2)}
+.card.foldable > .fold-head::after{
+  content:"";width:8px;height:8px;
+  border-right:1.8px solid var(--sub);border-bottom:1.8px solid var(--sub);
+  transform:rotate(45deg);margin-top:-4px;
+  transition:transform .2s cubic-bezier(.4,0,.2,1);
+}
+.card.foldable.folded > .fold-head::after{transform:rotate(-45deg);margin-top:0}
+
+/* ─────────────── 5. Hero 车辆卡 ─────────────── */
+.hero{border-radius:var(--radius)}
+/* 手机竖屏下卡片窄、车图铺满整卡，v1 的文字直接压在车身中灰区（实测约 3:1）。
+   这里垫一层「上浅下深」的纵向渐变，把底部文字区压暗；横屏那套横向板子在 media 里覆盖它。 */
+.hero-body{
+  background:linear-gradient(180deg,
+    rgba(7,10,15,.34) 0%,
+    rgba(7,10,15,.58) 42%,
+    rgba(7,10,15,.88) 100%);
+}
+/* 浅色主题的 Hero 是白底车图 + 深色字 ⇒ 底板翻成白色 */
+html[data-theme="light"] .hero-body{
+  background:linear-gradient(180deg,
+    rgba(255,255,255,.34) 0%,
+    rgba(255,255,255,.62) 42%,
+    rgba(255,255,255,.92) 100%);
+}
+.hero-name{font-size:var(--fs-display);font-weight:700;letter-spacing:.01em}
+.hero-plate{
+  border-radius:var(--radius-xs);padding:3px 10px;
+  font-size:var(--fs-min);letter-spacing:.12em;
+}
+.hero-metric{gap:8px;margin-top:16px;padding-top:14px}
+.hero-metric{border-top:1px solid rgba(255,255,255,.10)}
+.hm-val{font-size:var(--fs-display);font-weight:700;line-height:1.05}
+.hm-val em{font-size:var(--fs-min);font-weight:500;color:var(--muted)}
+.hm-key{font-size:var(--fs-min);color:var(--sub);margin-top:3px}
+.ac-live{font-size:var(--fs-min);line-height:1.5;margin-top:12px;padding-top:10px}
+
+/* ─────────────── 6. 控车按钮：实心分层，按压有位移 ─────────────── */
+.ctl{
+  background:var(--card2);
+  border:1px solid var(--line);
+  border-radius:var(--radius-s);
+  box-shadow:none;
+  transition:transform .1s cubic-bezier(.4,0,.2,1),background .1s ease,border-color .1s ease;
+}
+.ctl::before{display:none}          /* 去掉那道顶部高光渐变 */
+.ctl:active{
+  transform:scale(.96);
+  background:var(--line);
+  border-color:var(--line-strong);
+  box-shadow:none;
+}
+html[data-theme="light"] .ctl{background:var(--card2);box-shadow:none;border-color:var(--line)}
+.ctl-svg{filter:none}               /* 图标投影在暗底上是脏点 */
+.ctl-t{font-size:var(--fs-label);font-weight:600;opacity:1}
+
+/* ─────────────── 7. 空调卡 ─────────────── */
+.ac-card{padding:14px}
+.ac-title{font-size:var(--fs-h1);font-weight:700}
+.ac-sub{font-size:var(--fs-min);color:var(--sub)}
+.ac-temp-val{letter-spacing:-.02em}
+
+/* ─────────────── 8. 底部导航（手机） / 侧边导航（车机，见第 10 节） ─────────────── */
+.navbar{
+  background:var(--bg2);
+  border-top:1px solid var(--line);
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+.nav-item{
+  font-size:var(--fs-min);color:var(--sub);border-radius:var(--radius-s);
+  transition:color .14s ease,background .14s ease,transform .1s ease;
+}
+.nav-item:active{transform:scale(.95);background:var(--card2)}
+.nav-item.active{color:var(--txt)}
+.nav-item.active svg{color:var(--accent)}
+
+/* ─────────────── 9. 列表行 / chip / 输入 ─────────────── */
+.kv-k{font-size:var(--fs-label);color:var(--muted)}
+.kv-v{font-size:var(--fs-label);font-weight:600;color:var(--txt)}
+.chip{
+  background:var(--card2);border:1px solid var(--line);color:var(--muted);
+  border-radius:var(--radius-s);font-size:var(--fs-label);font-weight:600;
+  min-height:44px;transition:transform .1s ease,background .12s ease,color .12s ease;
+}
+.chip:active{transform:scale(.96)}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.card.stat{background:var(--card2);border-color:var(--line)}
+
+/* 弹层：去掉背景 blur（车机 GPU 弱，blur 会掉帧） */
+.sheet{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(4,7,11,.76)}
+.sheet-card{background:var(--card);border:1px solid var(--line);box-shadow:none}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   10. 车机横屏布局（≥900px）
+   —— 这一节是「难看」的真正解药：v1 完全没有大屏布局。
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (min-width:900px){
+  :root{
+    /* 车载字号阶梯：严格递减，最大 56 / 主 30 / 次 24 / 正文 20 / 标签 17 / 最小 15 */
+    --fs-display:44px;
+    --fs-h1:26px;
+    --fs-h2:24px;
+    --fs-body:20px;
+    --fs-label:17px;
+    --fs-min:15px;
+    --radius:16px; --radius-s:12px; --radius-xs:8px;
+  }
+  body{font-size:var(--fs-body)}
+
+  /* 左侧竖导航 + 顶栏 + 内容 + 版本号 */
+  .app{
+    display:grid;
+    grid-template-columns:104px minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr) auto;
+    grid-template-areas:
+      "nav top"
+      "nav content"
+      "nav ver";
+    height:100vh;height:100dvh;
+  }
+  .topbar{grid-area:top;padding:14px 24px 12px}
+  .content{grid-area:content;padding:18px 24px 24px;overflow-y:auto}
+  #appVer{grid-area:ver;font-size:var(--fs-min) !important;padding:6px 0 8px !important}
+
+  /* 导航栏转成左侧竖排：每项 104×104，远超 76dp 触控下限 */
+  .navbar{
+    grid-area:nav;
+    display:flex;flex-direction:column;justify-content:flex-start;gap:6px;
+    padding:14px 10px;border-top:none;border-right:1px solid var(--line);
+    background:var(--bg2);
+  }
+  .nav-item{
+    flex:none;width:84px;height:84px;gap:6px;
+    font-size:var(--fs-min);border-radius:var(--radius-s);
+  }
+  .nav-item svg{width:28px;height:28px}
+  .nav-item.active{background:var(--card2)}
+  /* 选中态：左侧一道 3px 主色竖条（比整块变色更克制，也更容易扫读） */
+  .nav-item.active::before{
+    content:"";position:absolute;left:-10px;top:16px;bottom:16px;width:3px;
+    background:var(--accent);border-radius:0 3px 3px 0;
+  }
+
+  /* 页面本体：两栏等宽，卡片按顺序流；hero 跨满 */
+  .page.active{
+    display:grid;
+    grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr);
+    gap:16px;align-items:start;
+  }
+  .page.active > .hero{grid-column:1 / -1}
+  .card{margin-bottom:0;padding:18px 20px}
+  .page > .sec-title{grid-column:1 / -1;margin:2px 0 0}
+
+  /* —— 放大到车载可读级 —— */
+  .topbar{min-height:84px}
+  .tb-title{font-size:var(--fs-h2);font-weight:700}
+  .tb-sub{font-size:var(--fs-min)}
+  .icon-btn{
+    width:76px;height:76px;border-radius:var(--radius-s);
+    background:transparent;border-color:var(--line);
+  }
+  .icon-btn svg{width:32px;height:32px}
+
+  .hero-name{font-size:32px}
+  .hero-plate{font-size:var(--fs-label);padding:5px 14px}
+  /* ★★ 关键：hero 在大屏上跨满 1128px，背景是车。
+     v1 的 body 内边距左右对称 ⇒ 四个车况指标横铺整宽，
+     右半边（油量 / 燃油续航）正好压在车身亮部，几乎读不出来。
+     两步解决：
+       ① 内容区收进左侧 50%；
+       ② 在内容区底下垫一层从左到右渐隐的深色「板」——
+          这样即使车图最亮的部分顶到文字下面，字也始终有 4.5:1 的底。 */
+  .hero-body{
+    padding:16px 50% 14px 28px;
+    background:linear-gradient(100deg,
+      rgba(7,10,15,.97) 0%,
+      rgba(7,10,15,.94) 38%,
+      rgba(7,10,15,.66) 54%,
+      rgba(7,10,15,.18) 70%,
+      rgba(7,10,15,0) 82%);
+  }
+  .hero-metric{gap:10px;margin-top:12px;padding-top:10px}
+  .hm-val{font-size:38px}
+  .hm-val em{font-size:var(--fs-label)}
+  .hm-key{font-size:var(--fs-label);margin-top:4px}
+  .ac-live{font-size:var(--fs-label);margin-top:10px;padding-top:8px}
+  /* 右上角状态胶囊原先是浅色玻璃底，压在车顶亮区基本看不见 ⇒ 深底 + 亮描边 + 字号跟上 */
+  .hero .pill{
+    background:rgba(6,10,16,.80);border-color:rgba(255,255,255,.24);
+    color:#E8EEF6;font-size:var(--fs-min);min-height:44px;padding:0 14px;
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+  }
+  .hero .pill i{width:8px;height:8px}
+  html[data-theme="light"] .hero .pill{
+    background:rgba(6,10,16,.80);border-color:rgba(255,255,255,.24);color:#E8EEF6;
+  }
+  /* 浅色主题的 Hero 是白底车图、文字是深色 ⇒ 底板必须跟着翻成白色，
+     否则会出现「深色板 + 深色字」整块糊掉（2026-10-24 实测截图） */
+  html[data-theme="light"] .hero-body{
+    background:linear-gradient(100deg,
+      rgba(255,255,255,.99) 0%,
+      rgba(255,255,255,.96) 38%,
+      rgba(255,255,255,.74) 54%,
+      rgba(255,255,255,.24) 70%,
+      rgba(255,255,255,0) 82%);
+  }
+
+  /* 控车按钮：4 列时每钮 ~250×104，5 列时 ~200×104，都远超 76dp 触控下限。
+     高度取 104 而不是 126：首屏要在 1280×720 里同时容下 hero + 两行按钮，否则按钮第二行被切。 */
+  .grid4{gap:12px;margin-bottom:0}
+  .grid5{grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:0}
+  .ctl{
+    min-height:96px;border-radius:var(--radius-s);
+    padding:14px 8px 12px;gap:8px;
+    justify-content:center;
+  }
+  .grid5 .ctl{min-height:96px;padding:12px 6px 10px;gap:7px}
+  .ctl-svg{width:38px;height:38px}
+  .grid5 .ctl-svg{width:34px;height:34px}
+  .ctl-t{font-size:var(--fs-label);white-space:normal;text-align:center;line-height:1.25}
+  /* ★ 原文件 `.grid5 .ctl-t{font-size:12px}` 是两个类，优先级高于单个 `.ctl-t`
+     ⇒ 5 列布局下必须显式再压一次，否则这 10 颗按钮的文字仍是 12px 的「蚂蚁字」 */
+  .grid5 .ctl-t{font-size:var(--fs-label)}
+
+  .ac-card{padding:20px 22px}
+  .ac-title{font-size:var(--fs-h2)}
+  .ac-sub{font-size:var(--fs-min)}
+  .ac-temp-val{font-size:64px}
+
+  .sec-title{font-size:var(--fs-min)}
+  .sec-inline{font-size:var(--fs-label)}
+
+  /* 设置页：折叠卡片两列后每张都够宽，标题行 ≥76dp 高 */
+  .card.foldable > .fold-head{min-height:76px;padding:18px 20px;margin:-18px -20px 16px}
+  .card.foldable.folded > .fold-head{margin:0;padding:22px 20px;border-radius:var(--radius)}
+
+  .kv-k,.kv-v{font-size:var(--fs-label)}
+  .kv{min-height:64px}
+  /* 通用按钮：v1 是 15px/50 高/14 圆角，车机上太小且对比不足 */
+  .btn{
+    min-height:76px;border-radius:var(--radius-s);
+    font-size:var(--fs-label);font-weight:600;padding:0 24px;
+  }
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-ghost{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+  .chip{min-height:72px;font-size:var(--fs-label);padding:0 22px}
+  #chipDur .chip{min-height:76px}
+
+  /* 统计卡（8 张）：两栏里各占一格 */
+  .card.stat{min-height:132px;padding:18px 20px}
+
+  /* 示波器图例：跟着字号一起放大，仍然强制一行 */
+  .scope-legend{font-size:var(--fs-min);gap:8px}
+  .scope-legend .lg{font-size:var(--fs-min);padding:8px 10px}
+  .scope-legend .lg i{width:16px}
+
+  /* 触控便利：任何可点元素最小 76dp 高（规范下限） */
+  button{min-height:0}          /* 由各自组件覆盖，避免撑破小图标键 */
+  .nav-item{min-height:84px}
+
+  /* 正文类小字号统一拉到 17：v1 里散落着 12 / 12.5 / 13px 的说明与日志文字，
+     1280 屏上远看是一片灰雾 */
+  .log{font-size:var(--fs-label);line-height:1.6;max-height:420px;padding:16px}
+  .log.chg{max-height:46vh;padding:16px 16px 8px}
+  .chg-ver{font-size:var(--fs-h2)}
+  .chg-item{font-size:var(--fs-label);line-height:1.65}
+  .hint{font-size:var(--fs-min);margin-top:14px;min-height:24px}
+  .kb-k,.kv-k,.kv-v{font-size:var(--fs-label)}
+  .ac-sub,.tb-sub{font-size:var(--fs-min)}
+
+  /* ══ 瀑布流：设置 / 账户 / 行程这种「一串高度不齐的折叠卡」，
+     grid 每行会被最高的那张撑开、矮卡下面留一大块黑洞（实测设置页第二行空 240px）。
+     改用多栏流，卡片按列自然堆叠，不产生空洞。 */
+  #page-settings.active,
+  #page-account.active,
+  #page-trips.active{
+    display:block;
+    columns:2;
+    column-gap:16px;
+  }
+  #page-settings.active > .card,
+  #page-account.active > .card,
+  #page-trips.active > .card,
+  #page-settings.active > .sec-inline,
+  #page-account.active > .sec-inline{
+    break-inside:avoid;
+    page-break-inside:avoid;
+    margin:0 0 16px;
+    display:block;
+  }
+}
+
+/* 超大屏（≥1500px，如 1920 CSS 宽车机）：三栏，减少滚动 */
+@media (min-width:1500px){
+  .page.active{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .page.active > .hero{grid-column:1 / -1}
+  .ctl{min-height:120px}
+  .ctl-svg{width:44px;height:44px}
+  .hm-val{font-size:50px}
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   11. 交互反馈（「互动性差」的直接修复）
+   ══════════════════════════════════════════════════════════════════════════ */
+/* 页面切换：v1 是 display 切换 + 8px 位移，看得出「跳」；
+   现在加长到 220ms 并配合轻微缩放，切换有连续的动感 */
+@keyframes hmiPageIn{
+  from{opacity:0;transform:translateY(14px) scale(.994)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.page.active{animation:hmiPageIn .22s cubic-bezier(.22,.61,.36,1) both}
+
+/* 卡片入场：同屏内按顺序轻微错峰（纯 CSS，不依赖 JS） */
+@keyframes hmiCardIn{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.page.active > .card,
+.page.active > .grid4,
+.page.active > .grid5{animation:hmiCardIn .26s ease-out both}
+.page.active > *:nth-child(1){animation-delay:.02s}
+.page.active > *:nth-child(2){animation-delay:.05s}
+.page.active > *:nth-child(3){animation-delay:.08s}
+.page.active > *:nth-child(4){animation-delay:.11s}
+.page.active > *:nth-child(5){animation-delay:.14s}
+.page.active > *:nth-child(6){animation-delay:.16s}
+
+/* 全局按压反馈兜底：任何按钮按下都有 0.15 的缩放（组件自己写了就以后者为准） */
+button:active:not(:disabled):not(.ctl):not(.chip):not(.nav-item):not(.icon-btn){
+  transform:scale(.97);
+}
+
+/* 尊重系统「减少动效」设置 */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   12. 浅色主题补齐（夜间必须是负极性，白天才允许正极性）
+   ══════════════════════════════════════════════════════════════════════════ */
+html[data-theme="light"] .topbar,
+html[data-theme="light"] .navbar,
+html[data-theme="light"] #appVer{background:var(--bg2)}
+html[data-theme="light"] .card{box-shadow:none}
+html[data-theme="light"] .sheet{background:rgba(15,23,34,.42)}
